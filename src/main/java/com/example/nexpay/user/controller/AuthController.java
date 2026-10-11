@@ -1,7 +1,5 @@
 package com.example.nexpay.user.controller;
 
-import com.example.nexpay.user.dto.AuthResponse;
-import com.example.nexpay.user.dto.LoginRequest;
 import com.example.nexpay.user.dto.RegisterRequest;
 import com.example.nexpay.user.model.User;
 import com.example.nexpay.user.service.UserService;
@@ -28,12 +26,5 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body("User registered successfully! ID: " + registeredUser.getId());
-    }
-
-    // POST /api/auth/login
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthResponse response = userService.loginUser(request);
-        return ResponseEntity.ok(response);
     }
 }
