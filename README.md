@@ -81,26 +81,6 @@
 
 ---
 
-## 🗺️ 15-Day Production Roadmap
-
-- [x] **Day 1: Project Setup & User Domain** — PostgreSQL connection, `User` entity, JPA Repository.
-- [x] **Day 2: Secure Registration & BCrypt** — DTO input validation, BCrypt password hashing, Security filter rules.
-- [ ] **Day 3: Stateless JWT Auth & Error Handling** — Token issuance (`POST /api/auth/login`), `JwtFilter`, `@RestControllerAdvice`.
-- [ ] **Day 4: Wallet Engine & Balance Top-Up** — `@OneToOne` auto-provisioning, `BigDecimal` currency math.
-- [ ] **Day 5: High-Concurrency Transfer Engine** — Pessimistic Locking (`SELECT FOR UPDATE`), ACID transactions.
-- [ ] **Day 6: Idempotency Keys & Financial Safety** — Double-spending defense under high concurrent load.
-- [ ] **Day 7: Double-Entry Ledger & History** — Audit trails, `Pageable` pagination, JPQL queries.
-- [ ] **Day 8: Redis Caching & Invalidation** — Sub-5ms balance lookups, cache-aside pattern.
-- [ ] **Day 9: RabbitMQ Event Broker** — Decoupled async event publishers and background consumers.
-- [ ] **Day 10: Real-Time WebSockets** — STOMP bi-directional push alerts to client browsers.
-- [ ] **Day 11: Google Gemini AI (Fraud & NLP)** — Anomaly detection & natural language payment parser.
-- [ ] **Day 12: Multimodal AI Receipt Scanner & RBAC** — Receipt OCR bill splitting, Admin role security.
-- [ ] **Day 13: Automated Testing & Swagger Docs** — Unit & integration testing with JUnit/Mockito, OpenAPI UI.
-- [ ] **Day 14: Containerization & AWS Cloud** — Docker Compose, AWS EC2, AWS RDS, AWS S3, IAM.
-- [ ] **Day 15: GitHub Actions CI/CD & React 18 UI** — Automated deployment pipeline, animated glassmorphism UI.
-
----
-
 ## 🚀 Getting Started Locally
 
 ### Prerequisites
