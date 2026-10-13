@@ -1,5 +1,8 @@
 package com.example.nexpay.user.service;
 
+import com.example.nexpay.security.JwtService;
+import com.example.nexpay.user.dto.AuthResponse;
+import com.example.nexpay.user.dto.LoginRequest;
 import com.example.nexpay.user.dto.RegisterRequest;
 import com.example.nexpay.user.model.User;
 import com.example.nexpay.user.repository.UserRepository;
@@ -13,6 +16,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public User registerUser(RegisterRequest request) {
 
@@ -33,5 +37,19 @@ public class UserService {
                 .build();
 
         return userRepository.save(user);
+    }
+
+    public AuthResponse login(LoginRequest request) {
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new RuntimeException("Invalid email or password");
+        }
+
+        String token = jwtService.generateToken(user.getEmail());
+
+        return new AuthResponse(token, user.getEmail(), user.getFullName());
     }
 }
