@@ -7,156 +7,65 @@
 
 # 📑 MASTER TABLE OF CONTENTS
 
-- [PART I: THE HOLISTIC COMPUTER SCIENCE & BACKEND ENGINEERING DOMAINS](#part-i-the-holistic-computer-science-backend-engineering-domains)
-- [Module 1: Complete Authentication & Authorization Architecture](#module-1-complete-authentication-authorization-architecture)
-  - [1.1 The Full Industry Authentication Spectrum](#11-the-full-industry-authentication-spectrum)
-    - [1. Stateful Server-Side Sessions (Cookie-Based)](#1-stateful-server-side-sessions-cookie-based)
-    - [2. Stateless Bearer Tokens (JWT / RFC 7519)](#2-stateless-bearer-tokens-jwt-rfc-7519)
-    - [3. Delegated Authorization: OAuth 2.0 & OpenID Connect (OIDC)](#3-delegated-authorization-oauth-20-openid-connect-oidc)
-    - [4. Mutual TLS (mTLS / Zero-Trust Architecture)](#4-mutual-tls-mtls-zero-trust-architecture)
-    - [5. Cryptographic Request Signing (HMAC / AWS SigV4)](#5-cryptographic-request-signing-hmac-aws-sigv4)
-  - [1.2 Stateless Token Architecture: JWT (RFC 7519), JWS, JWE & Paseto](#12-stateless-token-architecture-jwt-rfc-7519-jws-jwe-paseto)
-    - [Structural Anatomy of a JSON Web Token](#structural-anatomy-of-a-json-web-token)
-    - [JWS vs. JWE](#jws-vs-jwe)
-    - [Paseto (Platform-Agnostic Security Tokens)](#paseto-platform-agnostic-security-tokens)
-  - [1.3 Distributed Token Revocation & Session Management at Scale](#13-distributed-token-revocation-session-management-at-scale)
-    - [Pattern 1: Short-Lived Access Tokens + Refresh Token Rotation (RTR)](#pattern-1-short-lived-access-tokens-refresh-token-rotation-rtr)
-  - [1.4 Security Attack Vectors, Threat Modeling & Defenses](#14-security-attack-vectors-threat-modeling-defenses)
-    - [1. Algorithm Confusion Attacks (`alg: "none"` and HMAC vs. RSA)](#1-algorithm-confusion-attacks-alg-none-and-hmac-vs-rsa)
-    - [2. Timing Attacks on Cryptographic Signatures](#2-timing-attacks-on-cryptographic-signatures)
-- [Module 2: Complete Cryptography & Credential Security](#module-2-complete-cryptography-credential-security)
-  - [2.1 The Cryptographic Trapdoor Function: Why Fast Hashes Fail](#21-the-cryptographic-trapdoor-function-why-fast-hashes-fail)
-    - [Why SHA-256 is Fatally Flawed for Passwords](#why-sha-256-is-fatally-flawed-for-passwords)
-  - [2.2 Salting Theory, Entropy & Moore's Law Work Factors](#22-salting-theory-entropy-moores-law-work-factors)
-    - [The Rainbow Table Attack](#the-rainbow-table-attack)
-    - [The Salt Solution](#the-salt-solution)
-    - [Moore's Law & Adaptive Work Factors](#moores-law-adaptive-work-factors)
-  - [2.3 Modern Password Hashing Taxonomy: PBKDF2 vs BCrypt vs Scrypt vs Argon2](#23-modern-password-hashing-taxonomy-pbkdf2-vs-bcrypt-vs-scrypt-vs-argon2)
-  - [2.4 BCrypt Deep Dive, Blowfish Cipher & The 72-Byte Truncation Quirk](#24-bcrypt-deep-dive-blowfish-cipher-the-72-byte-truncation-quirk)
-    - [Stored Hash Structure](#stored-hash-structure)
-    - [The 72-Byte Password Truncation Quirk](#the-72-byte-password-truncation-quirk)
-- [Module 3: Complete Persistence, ORM & Relational Database Architecture](#module-3-complete-persistence-orm-relational-database-architecture)
-  - [3.1 The Data Access Continuum: JDBC to Full ORM](#31-the-data-access-continuum-jdbc-to-full-orm)
-  - [3.2 The Object-Relational Impedance Mismatch](#32-the-object-relational-impedance-mismatch)
-    - [The Five Core Mismatch Dimensions](#the-five-core-mismatch-dimensions)
-  - [3.3 Primary Key Architecture & Index Clustering](#33-primary-key-architecture-index-clustering)
-    - [Why `GenerationType.IDENTITY` Disables Hibernate Batch Inserts](#why-generationtypeidentity-disables-hibernate-batch-inserts)
-    - [B-Tree Index Fragmentation with Random UUIDv4](#b-tree-index-fragmentation-with-random-uuidv4)
-  - [3.4 Connection Pooling Engineering: HikariCP Internals & Sizing Math](#34-connection-pooling-engineering-hikaricp-internals-sizing-math)
-    - [Why HikariCP Dominates the Java Ecosystem](#why-hikaricp-dominates-the-java-ecosystem)
-    - [The PostgreSQL Connection Pool Sizing Formula](#the-postgresql-connection-pool-sizing-formula)
-  - [3.5 Hibernate Entity Lifecycle & Persistence Context Mechanics](#35-hibernate-entity-lifecycle-persistence-context-mechanics)
-    - [The 4 JPA Entity States](#the-4-jpa-entity-states)
-  - [3.6 The N+1 Query Problem & Fetch Optimization](#36-the-n1-query-problem-fetch-optimization)
-    - [How It Occurs](#how-it-occurs)
-    - [The Three Production Solutions](#the-three-production-solutions)
-  - [3.7 Database Transactions, ACID Guarantees & Isolation Levels](#37-database-transactions-acid-guarantees-isolation-levels)
-    - [ACID Properties](#acid-properties)
-    - [Concurrency Anomalies & Isolation Levels](#concurrency-anomalies-isolation-levels)
-- [Module 4: Complete Inversion of Control (IoC) & Spring Framework Architecture](#module-4-complete-inversion-of-control-ioc-spring-framework-architecture)
-  - [4.1 The Hollywood Principle & Inversion of Control](#41-the-hollywood-principle-inversion-of-control)
-  - [4.2 Dependency Injection Flavors & Staff-Level Conventions](#42-dependency-injection-flavors-staff-level-conventions)
-    - [Why Constructor Injection is the Non-Negotiable Standard](#why-constructor-injection-is-the-non-negotiable-standard)
-  - [4.3 Spring Container Architecture: BeanFactory vs ApplicationContext](#43-spring-container-architecture-beanfactory-vs-applicationcontext)
-  - [4.4 The Full Spring Bean Lifecycle](#44-the-full-spring-bean-lifecycle)
-  - [4.5 Spring AOP & Dynamic Proxies (The Self-Invocation Trap)](#45-spring-aop-dynamic-proxies-the-self-invocation-trap)
-    - [The Two Proxy Mechanisms](#the-two-proxy-mechanisms)
-    - [The Infamous "Self-Invocation" Bug](#the-infamous-self-invocation-bug)
-- [Module 5: Complete HTTP API Design & Enterprise Error Architecture](#module-5-complete-http-api-design-enterprise-error-architecture)
-  - [5.1 Richardson Maturity Model & HTTP Protocol Invariants](#51-richardson-maturity-model-http-protocol-invariants)
-    - [HTTP Method Invariants: Safety & Idempotency](#http-method-invariants-safety-idempotency)
-  - [5.2 HTTP Status Code Taxonomy & Semantic Accuracy](#52-http-status-code-taxonomy-semantic-accuracy)
-  - [5.3 Standardized Problem Details (RFC 7807 & RFC 9457)](#53-standardized-problem-details-rfc-7807-rfc-9457)
-  - [5.4 Spring MVC DispatcherServlet Pipeline & Global Exception Handling](#54-spring-mvc-dispatcherservlet-pipeline-global-exception-handling)
-- [Module 6: Modern Java Evolution & High-Concurrency Systems](#module-6-modern-java-evolution-high-concurrency-systems)
-  - [6.1 Modern Java Language Evolution (Java 8 → 17 → 21/24)](#61-modern-java-language-evolution-java-8-17-2124)
-  - [6.2 Concurrency Paradigms: OS Threads vs Reactive vs Virtual Threads](#62-concurrency-paradigms-os-threads-vs-reactive-vs-virtual-threads)
-    - [Virtual Threads in Spring Boot (Project Loom)](#virtual-threads-in-spring-boot-project-loom)
-- [Module 7: DevOps, Cloud, Clean Code & Software Engineering Standards](#module-7-devops-cloud-clean-code-software-engineering-standards)
-  - [7.1 Clean Enterprise Code & The "Zero Tutorial Comments" Rule](#71-clean-enterprise-code-the-zero-tutorial-comments-rule)
-  - [7.2 Database Crash Consistency, Lock Files & WAL Replay](#72-database-crash-consistency-lock-files-wal-replay)
-  - [7.3 Git Internals, UTC Boundaries & Contribution Graph Mathematics](#73-git-internals-utc-boundaries-contribution-graph-mathematics)
-  - [7.4 Jackson RFC 8259 Specifications & Parsing Mechanics](#74-jackson-rfc-8259-specifications-parsing-mechanics)
-- [PART II: NEXPAY ENTERPRISE IMPLEMENTATION & 3-PILLAR MASTERCLASSES](#part-ii-nexpay-enterprise-implementation-3-pillar-masterclasses)
-- [Chapter 1: The Big Picture ΓÇö What is NexPay?](#chapter-1-the-big-picture-γçö-what-is-nexpay)
-    - [What makes it different from a basic CRUD project?](#what-makes-it-different-from-a-basic-crud-project)
-- [Chapter 2: The Foundation Story (Days 5 & 6 Walkthrough)](#chapter-2-the-foundation-story-days-5-6-walkthrough)
-- [Chapter 3: Architectural Masterclasses (Foundation Components)](#chapter-3-architectural-masterclasses-foundation-components)
-  - [Component 1: `User.java` ΓÇö JPA Entity Lifecycle, PostgreSQL BigSerial & Identity Mapping](#component-1-userjava-γçö-jpa-entity-lifecycle-postgresql-bigserial-identity-mapping)
-    - [1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics](#1-ƒºá-the-core-concept-mathematics-internal-mechanics)
-    - [2. ≡ƒÄ» The Production Engineering Problem It Solves](#2-ƒä-the-production-engineering-problem-it-solves)
-    - [3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers](#3-ƒäñ-real-seniorstaff-interview-questions-punchy-verbal-answers)
-    - [≡ƒöì Line-by-Line Code Breakdown of `User.java`](#ƒöì-line-by-line-code-breakdown-of-userjava)
-  - [Component 2: `UserRepository.java` ΓÇö Dynamic Proxies, Query Derivation & Connection Pools](#component-2-userrepositoryjava-γçö-dynamic-proxies-query-derivation-connection-pools)
-    - [1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics](#1-ƒºá-the-core-concept-mathematics-internal-mechanics)
-    - [2. ≡ƒÄ» The Production Engineering Problem It Solves](#2-ƒä-the-production-engineering-problem-it-solves)
-    - [3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers](#3-ƒäñ-real-seniorstaff-interview-questions-punchy-verbal-answers)
-    - [≡ƒöì Line-by-Line Code Breakdown of `UserRepository.java`](#ƒöì-line-by-line-code-breakdown-of-userrepositoryjava)
-  - [Component 3: `RegisterRequest.java` ΓÇö Input Boundary DTO & Fail-Fast Validation](#component-3-registerrequestjava-γçö-input-boundary-dto-fail-fast-validation)
-    - [1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics](#1-ƒºá-the-core-concept-mathematics-internal-mechanics)
-    - [2. ≡ƒÄ» The Production Engineering Problem It Solves](#2-ƒä-the-production-engineering-problem-it-solves)
-    - [3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers](#3-ƒäñ-real-seniorstaff-interview-questions-punchy-verbal-answers)
-    - [≡ƒöì Line-by-Line Code Breakdown of `RegisterRequest.java`](#ƒöì-line-by-line-code-breakdown-of-registerrequestjava)
-  - [Component 4: `SecurityConfig.java` ΓÇö Filter Chain Architecture, CSRF Theory & BCrypt Hashing](#component-4-securityconfigjava-γçö-filter-chain-architecture-csrf-theory-bcrypt-hashing)
-    - [1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics](#1-ƒºá-the-core-concept-mathematics-internal-mechanics)
-    - [2. ≡ƒÄ» The Production Engineering Problem It Solves](#2-ƒä-the-production-engineering-problem-it-solves)
-    - [3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers](#3-ƒäñ-real-seniorstaff-interview-questions-punchy-verbal-answers)
-    - [≡ƒöì Line-by-Line Code Breakdown of `SecurityConfig.java`](#ƒöì-line-by-line-code-breakdown-of-securityconfigjava)
-  - [Component 5: `UserService.java` ΓÇö Service Boundary, Constructor Injection & Business Rules](#component-5-userservicejava-γçö-service-boundary-constructor-injection-business-rules)
-    - [1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics](#1-ƒºá-the-core-concept-mathematics-internal-mechanics)
-    - [2. ≡ƒÄ» The Production Engineering Problem It Solves](#2-ƒä-the-production-engineering-problem-it-solves)
-    - [3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers](#3-ƒäñ-real-seniorstaff-interview-questions-punchy-verbal-answers)
-    - [≡ƒöì Line-by-Line Code Breakdown of `UserService.java`](#ƒöì-line-by-line-code-breakdown-of-userservicejava)
-  - [Component 6: `AuthController.java` ΓÇö REST Dispatch, HTTP Semantics & `@Valid`](#component-6-authcontrollerjava-γçö-rest-dispatch-http-semantics-valid)
-    - [1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics](#1-ƒºá-the-core-concept-mathematics-internal-mechanics)
-    - [2. ≡ƒÄ» The Production Engineering Problem It Solves](#2-ƒä-the-production-engineering-problem-it-solves)
-    - [3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers](#3-ƒäñ-real-seniorstaff-interview-questions-punchy-verbal-answers)
-    - [≡ƒöì Line-by-Line Code Breakdown of `AuthController.java`](#ƒöì-line-by-line-code-breakdown-of-authcontrollerjava)
-- [Chapter 4: Core Concepts & Annotations Master Reference](#chapter-4-core-concepts-annotations-master-reference)
-- [Chapter 5: Staff-Level Technical Deep-Dives](#chapter-5-staff-level-technical-deep-dives)
-    - [1. JVM Memory Layout & BigDecimal](#1-jvm-memory-layout-bigdecimal)
-    - [2. Spring Boot Core, IoC & Dependency Injection](#2-spring-boot-core-ioc-dependency-injection)
-    - [3. BCrypt Hashing & Salt Theory](#3-bcrypt-hashing-salt-theory)
-    - [4. PostgreSQL & Hibernate/JPA Persistence Lifecycle](#4-postgresql-hibernatejpa-persistence-lifecycle)
-    - [5. Modern Java Features (Java 10 ΓåÆ 17 ΓåÆ 21/24)](#5-modern-java-features-java-10-γåæ-17-γåæ-2124)
-- [Chapter 6: Day 1 ΓÇö JWT Authentication & Global Error Handling (From Scratch)](#chapter-6-day-1-γçö-jwt-authentication-global-error-handling-from-scratch)
-  - [Step 1: JWT Architecture, Maven Runtime Scopes (`pom.xml`) & 256-Bit Key Sizing (`application.yml`)](#step-1-jwt-architecture-maven-runtime-scopes-pomxml-256-bit-key-sizing-applicationyml)
-    - [1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics](#1-ƒºá-the-core-concept-mathematics-internal-mechanics)
-    - [2. ≡ƒÄ» The Production Engineering Problem It Solves](#2-ƒä-the-production-engineering-problem-it-solves)
-    - [3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers](#3-ƒäñ-real-seniorstaff-interview-questions-punchy-verbal-answers)
-  - [Step 2: `LoginRequest.java` ΓÇö DTO Deserialization, Lombok AST & Fail-Fast Validation](#step-2-loginrequestjava-γçö-dto-deserialization-lombok-ast-fail-fast-validation)
-    - [1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics](#1-ƒºá-the-core-concept-mathematics-internal-mechanics)
-    - [2. ≡ƒÄ» The Production Engineering Problem It Solves](#2-ƒä-the-production-engineering-problem-it-solves)
-    - [3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers](#3-ƒäñ-real-seniorstaff-interview-questions-punchy-verbal-answers)
-  - [Step 3: `AuthResponse.java` ΓÇö Outbound Serialization & Sensitive Credential Shielding](#step-3-authresponsejava-γçö-outbound-serialization-sensitive-credential-shielding)
-    - [1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics](#1-ƒºá-the-core-concept-mathematics-internal-mechanics)
-    - [2. ≡ƒÄ» The Production Engineering Problem It Solves](#2-ƒä-the-production-engineering-problem-it-solves)
-    - [3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers](#3-ƒäñ-real-seniorstaff-interview-questions-punchy-verbal-answers)
-  - [Step 4: `JwtService.java` ΓÇö HMAC-SHA256 Token Mint, Claims Cryptography & JJWT 0.12 Mechanics](#step-4-jwtservicejava-γçö-hmac-sha256-token-mint-claims-cryptography-jjwt-012-mechanics)
-    - [1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics](#1-ƒºá-the-core-concept-mathematics-internal-mechanics)
-    - [2. ≡ƒÄ» The Production Engineering Problem It Solves](#2-ƒä-the-production-engineering-problem-it-solves)
-    - [3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers](#3-ƒäñ-real-seniorstaff-interview-questions-punchy-verbal-answers)
-    - [≡ƒöì Line-by-Line Code Breakdown of `JwtService.java`](#ƒöì-line-by-line-code-breakdown-of-jwtservicejava)
-  - [Step 5: `JwtFilter.java` & Updating `SecurityConfig.java` ΓÇö Request Interception, ThreadLocal Security Context & Stateless Filter Chain](#step-5-jwtfilterjava-updating-securityconfigjava-γçö-request-interception-threadlocal-security-context-stateless-filter-chain)
-    - [1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics](#1-ƒºá-the-core-concept-mathematics-internal-mechanics)
-    - [2. ≡ƒÄ» The Production Engineering Problem It Solves](#2-ƒä-the-production-engineering-problem-it-solves)
-    - [3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers](#3-ƒäñ-real-seniorstaff-interview-questions-punchy-verbal-answers)
-    - [≡ƒöì Line-by-Line Code Breakdown of `JwtFilter.java`](#ƒöì-line-by-line-code-breakdown-of-jwtfilterjava)
-    - [≡ƒöì Line-by-Line Code Breakdown of Updated `SecurityConfig.java`](#ƒöì-line-by-line-code-breakdown-of-updated-securityconfigjava)
-  - [Step 6: `UserService.java` Login, `AuthController.java` Endpoint & `GlobalExceptionHandler.java` (RFC 7807)](#step-6-userservicejava-login-authcontrollerjava-endpoint-globalexceptionhandlerjava-rfc-7807)
-    - [1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics](#1-ƒºá-the-core-concept-mathematics-internal-mechanics)
-    - [2. ≡ƒÄ» The Production Engineering Problem It Solves](#2-ƒä-the-production-engineering-problem-it-solves)
-    - [3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers](#3-ƒäñ-real-seniorstaff-interview-questions-punchy-verbal-answers)
-    - [≡ƒöì Line-by-Line Code Breakdown of `UserService.java` (Login Method)](#ƒöì-line-by-line-code-breakdown-of-userservicejava-login-method)
-    - [≡ƒöì Line-by-Line Code Breakdown of `AuthController.java` (Login Endpoint)](#ƒöì-line-by-line-code-breakdown-of-authcontrollerjava-login-endpoint)
-    - [≡ƒöì Line-by-Line Code Breakdown of `GlobalExceptionHandler.java`](#ƒöì-line-by-line-code-breakdown-of-globalexceptionhandlerjava)
-- [Chapter 7: 15-Day Master Roadmap](#chapter-7-15-day-master-roadmap)
-- [Chapter 8: Production Engineering Practices, DevOps & Code Standards](#chapter-8-production-engineering-practices-devops-code-standards)
-  - [1. Clean Code Standards: Why We Strip Tutorial Comments](#1-clean-code-standards-why-we-strip-tutorial-comments)
-  - [2. Lombok `@Builder.Default` Internal Bytecode Mechanics](#2-lombok-builderdefault-internal-bytecode-mechanics)
-  - [3. Database Crash Recovery & Lock Files (`postmaster.pid`)](#3-database-crash-recovery-lock-files-postmasterpid)
-  - [4. Git Architecture, Timezones & GitHub Contribution Graphs](#4-git-architecture-timezones-github-contribution-graphs)
-  - [5. Jackson JSON Deserialization: Trailing Token Failures (`FAIL_ON_TRAILING_TOKENS`)](#5-jackson-json-deserialization-trailing-token-failures-fail_on_trailing_tokens)
+- **PART I: THE HOLISTIC COMPUTER SCIENCE & BACKEND ENGINEERING DOMAINS**
+  - [Module 1: Complete Authentication & Authorization Architecture](#module-1-complete-authentication--authorization-architecture)
+    - [1.1 The Full Industry Authentication Spectrum](#11-the-full-industry-authentication-spectrum)
+    - [1.2 Stateless Token Architecture: JWT (RFC 7519), JWS, JWE & Paseto](#12-stateless-token-architecture-jwt-rfc-7519-jws-jwe--paseto)
+    - [1.3 Distributed Token Revocation & Session Management at Scale](#13-distributed-token-revocation--session-management-at-scale)
+    - [1.4 Security Attack Vectors, Threat Modeling & Defenses](#14-security-attack-vectors-threat-modeling--defenses)
+  - [Module 2: Complete Cryptography & Credential Security](#module-2-complete-cryptography--credential-security)
+    - [2.1 The Cryptographic Trapdoor Function: Why Fast Hashes Fail](#21-the-cryptographic-trapdoor-function-why-fast-hashes-fail)
+    - [2.2 Salting Theory, Entropy & Moore\'s Law Work Factors](#22-salting-theory-entropy--moores-law-work-factors)
+    - [2.3 Modern Password Hashing Taxonomy: PBKDF2 vs BCrypt vs Scrypt vs Argon2](#23-modern-password-hashing-taxonomy-pbkdf2-vs-bcrypt-vs-scrypt-vs-argon2)
+    - [2.4 BCrypt Deep Dive, Blowfish Cipher & The 72-Byte Truncation Quirk](#24-bcrypt-deep-dive-blowfish-cipher--the-72-byte-truncation-quirk)
+  - [Module 3: Complete Persistence, ORM & Relational Database Architecture](#module-3-complete-persistence-orm--relational-database-architecture)
+    - [3.1 The Data Access Continuum: JDBC to Full ORM](#31-the-data-access-continuum-jdbc-to-full-orm)
+    - [3.2 The Object-Relational Impedance Mismatch](#32-the-object-relational-impedance-mismatch)
+    - [3.3 Primary Key Architecture & Index Clustering](#33-primary-key-architecture--index-clustering)
+    - [3.4 Connection Pooling Engineering: HikariCP Internals & Sizing Math](#34-connection-pooling-engineering-hikaricp-internals--sizing-math)
+    - [3.5 Hibernate Entity Lifecycle & Persistence Context Mechanics](#35-hibernate-entity-lifecycle--persistence-context-mechanics)
+    - [3.6 The N+1 Query Problem & Fetch Optimization](#36-the-n1-query-problem--fetch-optimization)
+    - [3.7 Database Transactions, ACID Guarantees & Isolation Levels](#37-database-transactions-acid-guarantees--isolation-levels)
+  - [Module 4: Complete Inversion of Control (IoC) & Spring Framework Architecture](#module-4-complete-inversion-of-control-ioc--spring-framework-architecture)
+    - [4.1 The Hollywood Principle & Inversion of Control](#41-the-hollywood-principle--inversion-of-control)
+    - [4.2 Dependency Injection Flavors & Staff-Level Conventions](#42-dependency-injection-flavors--staff-level-conventions)
+    - [4.3 Spring Container Architecture: BeanFactory vs ApplicationContext](#43-spring-container-architecture-beanfactory-vs-applicationcontext)
+    - [4.4 The Full Spring Bean Lifecycle](#44-the-full-spring-bean-lifecycle)
+    - [4.5 Spring AOP & Dynamic Proxies (The Self-Invocation Trap)](#45-spring-aop--dynamic-proxies-the-self-invocation-trap)
+  - [Module 5: Complete HTTP API Design & Enterprise Error Architecture](#module-5-complete-http-api-design--enterprise-error-architecture)
+    - [5.1 Richardson Maturity Model & HTTP Protocol Invariants](#51-richardson-maturity-model--http-protocol-invariants)
+    - [5.2 HTTP Status Code Taxonomy & Semantic Accuracy](#52-http-status-code-taxonomy--semantic-accuracy)
+    - [5.3 Standardized Problem Details (RFC 7807 & RFC 9457)](#53-standardized-problem-details-rfc-7807--rfc-9457)
+    - [5.4 Spring MVC DispatcherServlet Pipeline & Global Exception Handling](#54-spring-mvc-dispatcherservlet-pipeline--global-exception-handling)
+  - [Module 6: Modern Java Evolution & High-Concurrency Systems](#module-6-modern-java-evolution--high-concurrency-systems)
+    - [6.1 Modern Java Language Evolution (Java 8 → 17 → 21/24)](#61-modern-java-language-evolution-java-8--17--2124)
+    - [6.2 Concurrency Paradigms: OS Threads vs Reactive vs Virtual Threads](#62-concurrency-paradigms-os-threads-vs-reactive-vs-virtual-threads)
+  - [Module 7: DevOps, Cloud, Clean Code & Software Engineering Standards](#module-7-devops-cloud-clean-code--software-engineering-standards)
+    - [7.1 Clean Enterprise Code & The \'Zero Tutorial Comments\' Rule](#71-clean-enterprise-code--the-zero-tutorial-comments-rule)
+    - [7.2 Database Crash Consistency, Lock Files & WAL Replay](#72-database-crash-consistency-lock-files--wal-replay)
+    - [7.3 Git Internals, UTC Boundaries & Contribution Graph Mathematics](#73-git-internals-utc-boundaries--contribution-graph-mathematics)
+    - [7.4 Jackson RFC 8259 Specifications & Parsing Mechanics](#74-jackson-rfc-8259-specifications--parsing-mechanics)
+- **PART II: NEXPAY ARCHITECTURE, IMPLEMENTATION & 3-PILLAR MASTERCLASSES**
+  - [Chapter 1: The Big Picture — What is NexPay?](#chapter-1-the-big-picture--what-is-nexpay)
+  - [Chapter 2: The Foundation Story (Days 5 & 6 Walkthrough)](#chapter-2-the-foundation-story-days-5--6-walkthrough)
+  - [Chapter 3: Architectural Masterclasses (Foundation Components)](#chapter-3-architectural-masterclasses-foundation-components)
+    - [Component 1: User.java](#component-1-userjava--jpa-entity-lifecycle-postgresql-bigserial--identity-mapping)
+    - [Component 2: UserRepository.java](#component-2-userrepositoryjava--dynamic-proxies-query-derivation--connection-pools)
+    - [Component 3: RegisterRequest.java](#component-3-registerrequestjava--input-boundary-dto--fail-fast-validation)
+    - [Component 4: SecurityConfig.java](#component-4-securityconfigjava--filter-chain-architecture-csrf-theory--bcrypt-hashing)
+    - [Component 5: UserService.java](#component-5-userservicejava--service-boundary-constructor-injection--business-rules)
+    - [Component 6: AuthController.java](#component-6-authcontrollerjava--rest-dispatch-http-semantics--valid)
+  - [Chapter 4: Core Concepts & Annotations Master Reference](#chapter-4-core-concepts--annotations-master-reference)
+  - [Chapter 5: Staff-Level Technical Deep-Dives](#chapter-5-staff-level-technical-deep-dives)
+  - [Chapter 6: Day 1 — JWT Authentication & Global Error Handling (From Scratch)](#chapter-6-day-1--jwt-authentication--global-error-handling-from-scratch)
+    - [Step 1: JWT Architecture & Key Sizing](#step-1-jwt-architecture-maven-runtime-scopes-pomxml--256-bit-key-sizing-applicationyml)
+    - [Step 2: LoginRequest.java](#step-2-loginrequestjava--dto-deserialization-lombok-ast--fail-fast-validation)
+    - [Step 3: AuthResponse.java](#step-3-authresponsejava--outbound-serialization--sensitive-credential-shielding)
+    - [Step 4: JwtService.java](#step-4-jwtservicejava--hmac-sha256-token-mint-claims-cryptography--jjwt-012-mechanics)
+    - [Step 5: JwtFilter.java & SecurityConfig.java](#step-5-jwtfilterjava--updating-securityconfigjava--request-interception-threadlocal-security-context--stateless-filter-chain)
+    - [Step 6: Login Endpoint & GlobalExceptionHandler.java (RFC 7807)](#step-6-userservicejava-login-authcontrollerjava-endpoint--globalexceptionhandlerjava-rfc-7807)
+  - [Chapter 7: 15-Day Master Roadmap](#chapter-7-15-day-master-roadmap)
+  - [Chapter 8: Production Engineering Practices, DevOps & Code Standards](#chapter-8-production-engineering-practices-devops--code-standards)
 
 ---
 
@@ -1017,11 +926,13 @@ Tomcat no longer limits throughput to its 200-thread pool. When a virtual thread
 
 ---
 
-# PART II: NEXPAY ENTERPRISE IMPLEMENTATION & 3-PILLAR MASTERCLASSES
+---
+
+# PART II: NEXPAY ARCHITECTURE, IMPLEMENTATION & 3-PILLAR MASTERCLASSES
 
 ---
 
-# Chapter 1: The Big Picture ΓÇö What is NexPay?
+# Chapter 1: The Big Picture — What is NexPay?
 
 **NexPay** is a high-concurrency, secure **P2P Digital Payment Platform** (like Google Pay, PayPal, or PhonePe).
 
@@ -1040,51 +951,51 @@ Here is what happens when someone registers on NexPay right now:
 
 ```
 [ POSTMAN (Client) ]
-        Γöé
-        Γöé  1. Sends JSON:
-        Γöé     {
-        Γöé       "fullName": "Rishi Kumar",
-        Γöé       "email": "rishi@gmail.com",
-        Γöé       "password": "secret123",
-        Γöé       "phone": "9876543210"
-        Γöé     }
-        Γû╝
-[ AuthController ] ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓû║ Validates inputs via @Valid RegisterRequest (min 6 chars, email format)
-        Γöé
-        Γöé  2. Calls userService.registerUser(request)
-        Γû╝
-[ UserService ] ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓû║ 1. Checks DB: existsByEmail() -> false?
-        Γöé                      2. Checks DB: existsByPhone() -> false?
-        Γöé                      3. BCrypt encodes "secret123" -> "$2a$10$vI8a..."
-        Γöé                      4. Builds User object using User.builder()
-        Γû╝
-[ UserRepository ] ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓû║ Calls save(user)
-        Γöé
-        Γû╝
-[ PostgreSQL (nexpaydb) ] ΓöÇΓöÇΓöÇΓû║ Executes: INSERT INTO users (...) VALUES (...)
-        Γöé                      Auto-generates Primary Key: id = 1
-        Γû╝
-[ AuthController Response ] ΓöÇΓû║ Returns HTTP 201 Created: "User registered successfully! ID: 1"
+        │
+        │  1. Sends JSON:
+        │     {
+        │       "fullName": "Rishi Kumar",
+        │       "email": "rishi@gmail.com",
+        │       "password": "secret123",
+        │       "phone": "9876543210"
+        │     }
+        ▼
+[ AuthController ] ──────────► Validates inputs via @Valid RegisterRequest (min 6 chars, email format)
+        │
+        │  2. Calls userService.registerUser(request)
+        ▼
+[ UserService ] ─────────────► 1. Checks DB: existsByEmail() -> false?
+        │                      2. Checks DB: existsByPhone() -> false?
+        │                      3. BCrypt encodes "secret123" -> "$2a$10$vI8a..."
+        │                      4. Builds User object using User.builder()
+        ▼
+[ UserRepository ] ──────────► Calls save(user)
+        │
+        ▼
+[ PostgreSQL (nexpaydb) ] ───► Executes: INSERT INTO users (...) VALUES (...)
+        │                      Auto-generates Primary Key: id = 1
+        ▼
+[ AuthController Response ] ─► Returns HTTP 201 Created: "User registered successfully! ID: 1"
 ```
 
 ---
 
 # Chapter 3: Architectural Masterclasses (Foundation Components)
 
-## Component 1: `User.java` ΓÇö JPA Entity Lifecycle, PostgreSQL BigSerial & Identity Mapping
+## Component 1: `User.java` — JPA Entity Lifecycle, PostgreSQL BigSerial & Identity Mapping
 
-### 1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
 * **JPA Entity Mapping & Relational Calculus:** An `@Entity` defines an Object-Relational Mapping (ORM) bridge between a JVM heap object and a relational row in PostgreSQL.
 * **Why Table Name Must Be `users` (`@Table(name = "users")`):** In ANSI SQL and specifically PostgreSQL, `USER` is a reserved system keyword referring to the currently connected database role. Naming a table `user` without double-quoting causes syntax parsing failures (`syntax error at or near "user"`).
 * **Surrogate Key Generation (`GenerationType.IDENTITY`):** Delegates primary key minting to PostgreSQL's native `BIGSERIAL` sequence generator. The sequence produces monotonically increasing 64-bit signed integers ($1, 2, 3, \dots, 2^{63}-1$), preventing integer overflow on large-scale datasets.
 * **`@PrePersist` Hook Execution:** Intercepted by Hibernate's entity state machine immediately prior to executing the SQL `INSERT` statement. Sets `createdAt = LocalDateTime.now()` in memory, guaranteeing tamper-proof audit timestamps.
 * **Enum Storage Strategy (`EnumType.STRING`):** By default, JPA stores enums as integers (`EnumType.ORDINAL`, starting at $0$). If a developer later inserts an enum value at the top of the list, all existing integer references in the database point to the wrong business role! `EnumType.STRING` writes `"USER"` or `"ADMIN"` as varchar, ensuring 100% schema resilience.
 
-### 2. ≡ƒÄ» The Production Engineering Problem It Solves
+### 2. 🎯 The Production Engineering Problem It Solves
 * **Relational Impedance Mismatch & Schema Drift:** Rather than writing and synchronizing manual SQL `CREATE TABLE` and migration scripts, Hibernate derives the DDL schema directly from Java types. Constraints like `@Column(nullable = false, unique = true)` generate physical PostgreSQL `NOT NULL` and `UNIQUE INDEX` constraints, enforcing database-level data integrity against race conditions.
 * **Zero Plaintext Password Exposure:** The entity explicitly defines `passwordHash` (a 60-character BCrypt string) rather than `password`, preventing accidental plaintext storage in databases or system logs.
 
-### 3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
 * **Q1: Why should you always use `EnumType.STRING` instead of the default `EnumType.ORDINAL` in JPA?**
   > *"The default `EnumType.ORDINAL` persists enum values as zero-indexed integers (0, 1, 2). If an engineer adds or reorders an enum constant in the codebase, all previously stored database rows immediately point to the wrong enum values, causing silent data corruption. `EnumType.STRING` writes the explicit string name (e.g. `'USER'`), ensuring long-term database schema safety."*
 * **Q2: Why is `Long` (wrapper) preferred over `long` (primitive) for the `@Id` field in JPA entities?**
@@ -1092,7 +1003,7 @@ Here is what happens when someone registers on NexPay right now:
 * **Q3: What are the risks of using Lombok's `@Data` on JPA Entities, and how is it addressed in production?**
   > *"Lombok's `@Data` generates `equals()` and `hashCode()` using all fields. If an entity is stored in a `HashSet` before being saved, its `id` is `null`. Once saved, the `id` is populated, altering its `hashCode()` and corrupting the set. Additionally, bi-directional relationships in generated `toString()` trigger `StackOverflowError`. In strict production environments, senior teams use `@Getter`, `@Setter`, `@NoArgsConstructor` and manually implement `equals()` and `hashCode()` based strictly on business keys."*
 
-### ≡ƒöì Line-by-Line Code Breakdown of `User.java`
+### 🔍 Line-by-Line Code Breakdown of `User.java`
 ```java
 // Line 1: Package location inside model
 package com.example.nexpay.user.model;
@@ -1144,26 +1055,26 @@ public class User {
 
 ---
 
-## Component 2: `UserRepository.java` ΓÇö Dynamic Proxies, Query Derivation & Connection Pools
+## Component 2: `UserRepository.java` — Dynamic Proxies, Query Derivation & Connection Pools
 
-### 1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
 * **Dynamic Proxy Synthesis at Boot Time:** `UserRepository` is an `interface` without an implementation class. During Spring Boot application startup, Spring Data JPA uses Java's `java.lang.reflect.Proxy` to generate a dynamic runtime proxy class implementing `UserRepository` and wrapping the underlying Hibernate `EntityManager`.
 * **Query Derivation Grammars:** Spring Data parses method names (`findByEmail`, `existsByEmail`) using a formal grammar parser:
   * `findByEmail(String email)` $\rightarrow$ JPQL: `SELECT u FROM User u WHERE u.email = :email`
   * `existsByEmail(String email)` $\rightarrow$ JPQL: `SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.email = :email`
 * **`Optional<T>` Monad Pattern:** Returning `Optional<User>` forces caller methods to explicitly handle presence or absence via functional combinators (`.orElseThrow()`, `.map()`), eliminating runtime `NullPointerException`s.
 
-### 2. ≡ƒÄ» The Production Engineering Problem It Solves
+### 2. 🎯 The Production Engineering Problem It Solves
 * **SQL Injection Neutralization:** Traditional JDBC string concatenation (`"SELECT * FROM users WHERE email = '" + email + "'"` ) is vulnerable to SQL injection. Spring Data JPA automatically enforces parameterized prepared statements (`WHERE email = ?`), separating SQL instructions from untrusted data parameters.
 * **HikariCP Connection Pool Efficiency:** Manual JDBC connections require fragile `try-finally` blocks to return connections to the pool. Spring Data abstracts connection acquisition and release through transaction-scoped sessions, preventing connection leakage.
 
-### 3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
 * **Q1: Why should you use `existsByEmail()` instead of `findByEmail().isPresent()` when validating duplicate accounts?**
   > *"`findByEmail()` generates `SELECT * FROM users WHERE email = ?`, which loads the entire entity into memory, allocates heap objects, and populates the Hibernate First-Level Cache. In contrast, `existsByEmail()` executes an optimized `SELECT 1 FROM users WHERE email = ? LIMIT 1` (or `COUNT(1)`), executing in a fraction of the time with near-zero JVM memory allocation."*
 * **Q2: How does Spring Data JPA implement repository interfaces without any written classes?**
   > *"At startup, Spring Data inspects interfaces extending `Repository`, interprets their method signatures, and creates a JDK Dynamic Proxy (`java.lang.reflect.Proxy`) backed by `SimpleJpaRepository` which delegates database calls to Hibernate's `EntityManager`."*
 
-### ≡ƒöì Line-by-Line Code Breakdown of `UserRepository.java`
+### 🔍 Line-by-Line Code Breakdown of `UserRepository.java`
 ```java
 package com.example.nexpay.user.repository;
 
@@ -1193,23 +1104,23 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 ---
 
-## Component 3: `RegisterRequest.java` ΓÇö Input Boundary DTO & Fail-Fast Validation
+## Component 3: `RegisterRequest.java` — Input Boundary DTO & Fail-Fast Validation
 
-### 1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
 * **DTO Boundary Isolation:** Isolates public untrusted HTTP inputs from the internal domain model.
 * **JSR-380 Bean Validation Mechanics:** Annotated fields (`@NotBlank`, `@Email`, `@Size`) are evaluated by Hibernate Validator before the controller method executes.
 * **Password Length Entropy:** `@Size(min = 6)` enforces minimal password entropy:
   $$E = L \times \log_2(R) = 6 \times \log_2(94) \approx 39.3 \text{ bits of entropy}$$
   This prevents trivial 1-character passwords before the computationally expensive BCrypt encoder runs.
 
-### 2. ≡ƒÄ» The Production Engineering Problem It Solves
+### 2. 🎯 The Production Engineering Problem It Solves
 * **Denial of Service (DoS) Defense via CPU Throttling Protection:** BCrypt hashing intentionally consumes $\approx 60\text{ms}$ of CPU time. If an attacker spams thousands of requests with empty passwords, fail-fast DTO validation rejects the requests in $0.02\text{ms}$ in-memory, shielding server CPU cores from denial-of-service exhaustion.
 
-### 3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
 * **Q1: What happens under the hood when a `@Valid` annotation fails on a DTO?**
   > *"Spring Boot's `MethodValidationPostProcessor` intercepts the method argument. If any constraints fail, it throws a `MethodArgumentNotValidException` containing a `BindingResult` with all field errors. If not caught by a `@RestControllerAdvice`, Spring returns a default HTTP 400 Bad Request."*
 
-### ≡ƒöì Line-by-Line Code Breakdown of `RegisterRequest.java`
+### 🔍 Line-by-Line Code Breakdown of `RegisterRequest.java`
 ```java
 package com.example.nexpay.user.dto;
 
@@ -1239,21 +1150,21 @@ public class RegisterRequest {
 
 ---
 
-## Component 4: `SecurityConfig.java` ΓÇö Filter Chain Architecture, CSRF Theory & BCrypt Hashing
+## Component 4: `SecurityConfig.java` — Filter Chain Architecture, CSRF Theory & BCrypt Hashing
 
-### 1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
 * **Spring Security 6+ Component Model:** Replaced inheritance (`WebSecurityConfigurerAdapter`) with pure functional `@Bean SecurityFilterChain` configuration.
 * **Why CSRF is Disabled (`csrf.disable()`):** CSRF attacks rely on browsers automatically attaching session cookies to cross-origin requests. Because NexPay uses stateless bearer tokens (`Authorization: Bearer <token>`) passed via HTTP headers, browsers never send them automatically on cross-origin form submissions, rendering CSRF protection unnecessary.
 * **BCrypt Hashing Cost Factor:** `BCryptPasswordEncoder` defaults to strength 10, executing $2^{10} = 1024$ key expansion rounds, forcing a $\approx 60\text{ms}$ delay per hash evaluation.
 
-### 2. ≡ƒÄ» The Production Engineering Problem It Solves
+### 2. 🎯 The Production Engineering Problem It Solves
 * **Centralized Authorization Policy:** Defines public permit-all entry points (`/api/auth/**`) and secures all future endpoints (`.anyRequest().authenticated()`) in a single declarative location.
 
-### 3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
 * **Q1: Why is CSRF protection disabled in stateless REST APIs using JWTs?**
   > *"CSRF vulnerabilities occur when an evil website triggers an authenticated request using ambient credentials stored in browser cookies. In stateless REST APIs, clients store JWTs in memory or local storage and explicitly send them via the `Authorization: Bearer` header. Browsers cannot automatically attach custom headers to cross-origin form submissions, so CSRF attacks are mathematically impossible."*
 
-### ≡ƒöì Line-by-Line Code Breakdown of `SecurityConfig.java`
+### 🔍 Line-by-Line Code Breakdown of `SecurityConfig.java`
 ```java
 package com.example.nexpay.config;
 
@@ -1289,21 +1200,21 @@ public class SecurityConfig {
 
 ---
 
-## Component 5: `UserService.java` ΓÇö Service Boundary, Constructor Injection & Business Rules
+## Component 5: `UserService.java` — Service Boundary, Constructor Injection & Business Rules
 
-### 1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
 * **Service Layer Boundary:** Encapsulates business logic, enforces business invariants (duplicate checks), and coordinates repository persistence.
 * **Constructor Dependency Injection via `@RequiredArgsConstructor`:** Injects dependencies into `final` fields at instantiation time, enforcing immutability and preventing circular dependencies.
 * **BCrypt Hashing Pipeline:** Encodes the plaintext password into a 60-character cryptographic salt-hash before building the `User` entity.
 
-### 2. ≡ƒÄ» The Production Engineering Problem It Solves
+### 2. 🎯 The Production Engineering Problem It Solves
 * **Defense-in-Depth Duplicate Verification:** Performs in-memory database queries (`existsByEmail`, `existsByPhone`) before persistence, providing clean business exception messages before falling back to PostgreSQL unique constraint violations.
 
-### 3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
 * **Q1: Why is Constructor Injection superior to `@Autowired` field injection in Spring?**
   > *"Constructor injection provides three major advantages: First, it allows dependencies to be marked `final`, ensuring thread-safe immutability. Second, it prevents partial object construction (the object cannot exist without its dependencies). Third, it enables effortless unit testing with Mockito without needing reflection or Spring container startup."*
 
-### ≡ƒöì Line-by-Line Code Breakdown of `UserService.java`
+### 🔍 Line-by-Line Code Breakdown of `UserService.java`
 ```java
 package com.example.nexpay.user.service;
 
@@ -1350,21 +1261,21 @@ public class UserService {
 
 ---
 
-## Component 6: `AuthController.java` ΓÇö REST Dispatch, HTTP Semantics & `@Valid`
+## Component 6: `AuthController.java` — REST Dispatch, HTTP Semantics & `@Valid`
 
-### 1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
 * **Spring MVC `DispatcherServlet` Dispatch:** The front controller routes incoming HTTP `POST /api/auth/register` to `register()` using `RequestMappingHandlerMapping`.
 * **`@RestController` = `@Controller` + `@ResponseBody`:** Automatically serializes returned objects into JSON using Jackson and writes directly to the HTTP response stream.
 * **HTTP 201 Created Semantics:** Returns `HttpStatus.CREATED` (201) to denote successful creation of a new database entity.
 
-### 2. ≡ƒÄ» The Production Engineering Problem It Solves
+### 2. 🎯 The Production Engineering Problem It Solves
 * **Separation of Web Layer from Domain Logic:** Controllers strictly translate HTTP requests to Java objects and return HTTP status codes, never containing business calculations or database queries.
 
-### 3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
 * **Q1: What is the architectural difference between `@Controller` and `@RestController`?**
   > *"`@Controller` is designed for traditional Spring MVC server-side rendered web pages returning view template names (e.g., Thymeleaf/JSP). `@RestController` is a convenience meta-annotation that includes `@Controller` and `@ResponseBody`, ensuring that method return values are automatically serialized into JSON/XML and written directly to the HTTP response body."*
 
-### ≡ƒöì Line-by-Line Code Breakdown of `AuthController.java`
+### 🔍 Line-by-Line Code Breakdown of `AuthController.java`
 ```java
 package com.example.nexpay.user.controller;
 
@@ -1435,27 +1346,27 @@ public class AuthController {
 
 ### 4. PostgreSQL & Hibernate/JPA Persistence Lifecycle
 - Managed entities exist in 4 states:
-  1. **Transient:** `new User()` ΓÇö unmanaged, no database ID.
+  1. **Transient:** `new User()` — unmanaged, no database ID.
   2. **Managed:** Tracked by `EntityManager` session First-Level Cache. Field changes are automatically synchronized via **Dirty Checking** at flush time.
   3. **Detached:** Transaction committed and session closed.
   4. **Removed:** Scheduled for SQL `DELETE`.
 - `GenerationType.IDENTITY` delegates ID generation to PostgreSQL `BIGSERIAL` sequence on row insertion.
 
-### 5. Modern Java Features (Java 10 ΓåÆ 17 ΓåÆ 21/24)
+### 5. Modern Java Features (Java 10 → 17 → 21/24)
 - **`var` (Java 10):** Compile-time local variable type inference (`var token = new UsernamePasswordAuthenticationToken(...)`). Java remains 100% statically typed; `javac` writes the full concrete type into the `.class` bytecode.
 - **Text Blocks `""" ... """` (Java 15):** Multi-line strings for SQL, JSON, and AI prompts that strip incidental indentation at compile-time without `\"` or `\n` clutter.
 - **`record` (Java 16):** Immutable data carrier (`public record AuthResponse(String token, String email) {}`). Generates `private final` fields, canonical constructor, and `invokedynamic`-backed `equals()`, `hashCode()`, and `toString()`.
 - **Pattern Matching & Exhaustive `switch` (Java 17/21):** Allows `if (obj instanceof String s)` without manual casting, and arrow `switch` expressions (`case USER -> ...`) that enforce compile-time exhaustiveness checking with no `break;` fall-through bugs.
 - **`sealed` Classes/Interfaces (Java 17):** Restricts inheritance via `permits` (`public sealed interface PaymentResult permits Success, Failure`), verified by the JVM classloader via the `PermittedSubclasses` bytecode attribute.
-- **Virtual Threads ΓÇö Project Loom (Java 21):** Lightweight JVM-managed threads ($\approx 1\text{KB}$ RAM vs. $1\text{MB}$ OS thread). When a virtual thread hits blocking PostgreSQL or HTTP I/O, the JVM unmounts its stack continuation onto the Heap, preventing OS thread starvation and enabling $50{,}000+$ concurrent requests.
+- **Virtual Threads — Project Loom (Java 21):** Lightweight JVM-managed threads ($\approx 1\text{KB}$ RAM vs. $1\text{MB}$ OS thread). When a virtual thread hits blocking PostgreSQL or HTTP I/O, the JVM unmounts its stack continuation onto the Heap, preventing OS thread starvation and enabling $50{,}000+$ concurrent requests.
 
 ---
 
-# Chapter 6: Day 1 ΓÇö JWT Authentication & Global Error Handling (From Scratch)
+# Chapter 6: Day 1 — JWT Authentication & Global Error Handling (From Scratch)
 
 ## Step 1: JWT Architecture, Maven Runtime Scopes (`pom.xml`) & 256-Bit Key Sizing (`application.yml`)
 
-### 1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
 * **Why Stateful Sessions Fail at Scale vs. Stateless JWT (RFC 7519):**
   * *Stateful Sessions:* Server generates a random `JSESSIONID`, stores user data in server RAM, and gives the browser a cookie.
   * *Stateless JWT:* Server stores **zero** session data in RAM. Instead, it embeds the user identity inside a JSON payload and signs it mathematically with a secret key:
@@ -1467,11 +1378,11 @@ public class AuthController {
 * **Why the Secret Key in `application.yml` Must Be $\ge 256$ Bits ($32$ ASCII characters):**
   * HMAC-SHA256 produces a $256$-bit ($32$-byte) digest. By RFC 7518 (JWA Specification Section 3.2), the secret key used with `HS256` **must be at least $256$ bits ($32$ bytes/characters) long**. If you provide a shorter key (e.g. `"mysecret"` = $64$ bits), JJWT immediately throws `WeakKeyException` at runtime to prevent brute-force key recovery!
 
-### 2. ≡ƒÄ» The Production Engineering Problem It Solves
+### 2. 🎯 The Production Engineering Problem It Solves
 * **Horizontal Auto-Scaling Without Sticky Sessions:** In AWS production with 10 EC2 instances behind a Load Balancer, stateful sessions fail when Request 1 hits Server A (login) and Request 2 hits Server B (transfer), because Server B does not have Server A's RAM. With JWT, any of the 10 EC2 servers can independently verify the HMAC-SHA256 signature in $0.1\text{ms}$ with zero shared memory or database lookups.
 * **Zero-Recompile Environment Promotion (12-Factor App Config):** Storing `jwt.secret` and `jwt.expiration` ($86{,}400{,}000\text{ms} = 24\text{h}$) in `application.yml` separates configuration from code. In AWS production, we override `JWT_SECRET` via environment variables without touching or recompiling a single line of Java.
 
-### 3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
 * **Q1: Why is `jjwt-impl` marked with `<scope>runtime</scope>` in Maven `pom.xml`?**
   > *"Marking `jjwt-impl` and `jjwt-jackson` with `runtime` scope enforces strict API-to-Implementation decoupling at compile time. Our Java source code can only import interfaces from `jjwt-api` during compilation, preventing developers from coupling business code to internal library implementation classes, while the JVM classloader still loads the implementation JARs at runtime via ServiceLoader."*
 * **Q2: What happens if you configure an HS256 JWT secret key that is only 10 characters long?**
@@ -1479,9 +1390,9 @@ public class AuthController {
 
 ---
 
-## Step 2: `LoginRequest.java` ΓÇö DTO Deserialization, Lombok AST & Fail-Fast Validation
+## Step 2: `LoginRequest.java` — DTO Deserialization, Lombok AST & Fail-Fast Validation
 
-### 1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
 * **DTO (Data Transfer Object) Boundary Contract:** An isolated data carrier with zero business logic or persistence mappings that defines the strict input contract between untrusted HTTP JSON bytes and JVM memory.
 * **Jackson Deserialization Mechanics (`MappingJackson2HttpMessageConverter`):**
   1. Reads raw UTF-8 bytes (`{"email":"rishi@gmail.com","password":"secret123"}`) from the Tomcat socket stream via `JsonParser`.
@@ -1494,11 +1405,11 @@ public class AuthController {
   * `@NotBlank`: Checks $x \neq \text{null} \land \text{length}(\text{trim}(x)) > 0$.
   * `@Email`: Evaluates a compiled Deterministic Finite Automaton (Regex state machine) verifying RFC 5322 syntax (`local-part@domain`).
 
-### 2. ≡ƒÄ» The Production Engineering Problem It Solves
+### 2. 🎯 The Production Engineering Problem It Solves
 * **Mass Assignment / Privilege Escalation Prevention:** Binding JSON directly to `@Entity User` allows attackers to pass `"role": "ADMIN"` or `"id": 1` in the JSON body, overwriting sensitive database columns. `LoginRequest` physically lacks `setRole()` or `setId()`, neutralizing Mass Assignment attacks.
 * **HikariCP Connection Pool Protection (Fail-Fast):** In-memory DTO validation executes in $\approx 0.02\text{ms}$ on the CPU. Without it, malformed bot traffic ($5{,}000$ empty requests/sec) travels to `UserRepository`, acquiring scarce database connections ($\approx 15\text{ms}$ network I/O) and starving the entire payment platform.
 
-### 3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
 * **Q1: Why should you never expose or accept JPA `@Entity` classes directly in `@RestController` endpoints?**
   > *"Exposing JPA entities directly creates three severe production risks: First, **Mass Assignment vulnerabilities**, where attackers inject fields like `role: ADMIN` into JSON payloads. Second, tight coupling between the database schema and public API contract, where renaming a column breaks client apps. Third, `LazyInitializationException` or N+1 query explosions when Jackson attempts to serialize lazy-loaded collections outside the transaction boundary."*
 * **Q2: What is the difference between `@NotNull`, `@NotEmpty`, and `@NotBlank`?**
@@ -1512,9 +1423,9 @@ public class AuthController {
 
 ---
 
-## Step 3: `AuthResponse.java` ΓÇö Outbound Serialization & Sensitive Credential Shielding
+## Step 3: `AuthResponse.java` — Outbound Serialization & Sensitive Credential Shielding
 
-### 1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
 * **Outbound DTO Boundary Contract:** A dedicated response container carrying only safe, client-facing fields (`token`, `email`, `fullName`) returned upon successful authentication.
 * **Jackson Serialization Mechanics (`MappingJackson2HttpMessageConverter`):**
   1. The Controller returns `ResponseEntity.ok(new AuthResponse(token, email, fullName))`.
@@ -1525,13 +1436,13 @@ public class AuthController {
 * **Compile-Time Constructor Generation (`@AllArgsConstructor`):**
   * Generates an all-arguments constructor `public AuthResponse(String token, String email, String fullName)` directly in bytecode via JSR-269 annotation processing. Allows `UserService` to cleanly instantiate the response in one line without boilerplate constructors.
 
-### 2. ≡ƒÄ» The Production Engineering Problem It Solves
+### 2. 🎯 The Production Engineering Problem It Solves
 * **Accidental Credential Exfiltration (CWE-200):** If an endpoint returns the database entity `User` directly, Jackson will serialize every column unless manually hidden. Even if `@JsonIgnore` is placed on `password`, developers frequently forget this on new columns (e.g. `failedLoginAttempts`, `salt`, `mfaSecret`). Returning an explicit `AuthResponse` guarantees zero database columns leak over the wire.
 * **Lazy Loading Failures & Infinite Serialization Loops:** Returning JPA entities with relational associations (e.g., `User` $\leftrightarrow$ `Wallet`) outside transaction boundaries causes Jackson to trigger `LazyInitializationException`, or infinite cyclic recursion causing `StackOverflowError` and thread termination.
 
-### 3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
 * **Q1: Why should you never return a JPA `@Entity` directly from a `@RestController`?**
-  > *"Returning JPA entities directly introduces two catastrophic production risks: First, security exfiltrationΓÇösensitive database fields like password hashes or internal status flags can easily leak to API clients. Second, runtime crashesΓÇöJackson attempting to serialize lazy-loaded ORM relationships outside active Hibernate sessions triggers `LazyInitializationException`, or enters recursive serialization loops resulting in `StackOverflowError`."*
+  > *"Returning JPA entities directly introduces two catastrophic production risks: First, security exfiltration—sensitive database fields like password hashes or internal status flags can easily leak to API clients. Second, runtime crashes—Jackson attempting to serialize lazy-loaded ORM relationships outside active Hibernate sessions triggers `LazyInitializationException`, or enters recursive serialization loops resulting in `StackOverflowError`."*
 * **Q2: What is the difference between `@NoArgsConstructor`, `@RequiredArgsConstructor`, and `@AllArgsConstructor` in Lombok?**
   > *"`@NoArgsConstructor` generates an empty parameterless constructor, required by frameworks like Hibernate and Jackson for reflective instantiation. `@RequiredArgsConstructor` generates a constructor only for `final` fields and `@NonNull` fields, which is the industry standard for Spring Dependency Injection in `@Service` classes. `@AllArgsConstructor` generates a constructor accepting every declared field, ideal for outbound DTOs."*
 * **Q3: What HTTP status code should be returned with `AuthResponse` upon successful login?**
@@ -1539,9 +1450,9 @@ public class AuthController {
 
 ---
 
-## Step 4: `JwtService.java` ΓÇö HMAC-SHA256 Token Mint, Claims Cryptography & JJWT 0.12 Mechanics
+## Step 4: `JwtService.java` — HMAC-SHA256 Token Mint, Claims Cryptography & JJWT 0.12 Mechanics
 
-### 1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
 * **Cryptographic Signing via HMAC-SHA256 (RFC 2104 / RFC 7518):**
   * HMAC combines a secret cryptographic key $K$ with token data $m = \text{Header} \parallel \text{\".\"} \parallel \text{Payload}$:
     $$\text{HMAC}(K, m) = H\Big((K' \oplus \text{opad}) \parallel H\big((K' \oplus \text{ipad}) \parallel m\big)\Big)$$
@@ -1559,13 +1470,13 @@ public class AuthController {
     2. Expiration timestamp (throws `ExpiredJwtException` if `exp < currentTimeMillis`).
     3. Structural validity (throws `MalformedJwtException` if not 3 base64url segments).
 
-### 2. ≡ƒÄ» The Production Engineering Problem It Solves
+### 2. 🎯 The Production Engineering Problem It Solves
 * **Horizontal Scalability (Zero-Session Clustering):** In traditional stateful architectures, 10 Spring Boot instances behind an AWS Load Balancer require sticky sessions or distributed Redis clustering to share session data. With stateless JWTs, any server instance can cryptographically verify the token in $<0.05\text{ms}$ on local CPU cores with zero network calls and zero database queries.
 * **PostgreSQL Connection Pool Conservation:** A fintech platform handling 20,000 req/sec would exhaust its database connection pool if every incoming request required querying a `sessions` table. JWT verification happens entirely in JVM RAM, saving tens of millions of database reads per hour.
 
-### 3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
 * **Q1: What is the computational complexity and performance footprint of verifying a JWT vs querying a session in Redis?**
-  > *"JWT verification is an in-memory CPU cryptographic hash check (HMAC-SHA256 over ~200 bytes) taking 10ΓÇô50 microseconds on the local JVM thread with zero network I/O. A Redis session check requires socket serialization, TCP round-trip latency (0.5msΓÇô2ms), and Redis thread pool resources. At 50,000 requests/sec, stateless JWT eliminates 50,000 network round-trips per second and avoids Redis cluster bottlenecking."*
+  > *"JWT verification is an in-memory CPU cryptographic hash check (HMAC-SHA256 over ~200 bytes) taking 10–50 microseconds on the local JVM thread with zero network I/O. A Redis session check requires socket serialization, TCP round-trip latency (0.5ms–2ms), and Redis thread pool resources. At 50,000 requests/sec, stateless JWT eliminates 50,000 network round-trips per second and avoids Redis cluster bottlenecking."*
 * **Q2: If JWTs are completely stateless, how do you handle immediate token revocation (logout, password reset, compromised tokens)?**
   > *"We utilize three production strategies: First, **Short-Lived Access Tokens (15 min) + Refresh Tokens (7 days)** stored in httpOnly cookies; revocation occurs at the refresh boundary. Second, **Redis Blacklist with TTL**: On logout, save the token's unique `jti` (JWT ID) in Redis with TTL equal to the token's remaining lifespan, checking it during the filter chain. Third, **User Token Versioning**: Store an integer `token_version` on the `User` entity and inside the JWT claims; incrementing the version in the DB immediately invalidates all active tokens issued under the prior version."*
 * **Q3: What exceptions are thrown by JJWT when validating tokens in production?**
@@ -1573,7 +1484,7 @@ public class AuthController {
 * **Q4: Why does JJWT 0.12 use `verifyWith()` and `getPayload()` instead of deprecated `setSigningKey()` and `getBody()`?**
   > *"JJWT 0.12 completely segregated signed tokens (JWS) from encrypted tokens (JWE). `verifyWith()` accepts a type-safe `SecretKey` or `PublicKey` to eliminate ambiguous key-type bugs, and `getPayload()` explicitly indicates payload claims retrieval rather than generic body data."*
 
-### ≡ƒöì Line-by-Line Code Breakdown of `JwtService.java`
+### 🔍 Line-by-Line Code Breakdown of `JwtService.java`
 
 ```java
 // Line 1: Package location inside security
@@ -1655,9 +1566,9 @@ public class JwtService {
 
 ---
 
-## Step 5: `JwtFilter.java` & Updating `SecurityConfig.java` ΓÇö Request Interception, ThreadLocal Security Context & Stateless Filter Chain
+## Step 5: `JwtFilter.java` & Updating `SecurityConfig.java` — Request Interception, ThreadLocal Security Context & Stateless Filter Chain
 
-### 1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
 * **Servlet Filter Pipeline & `OncePerRequestFilter` Guarantee:**
   * In the Java Servlet specification, a standard `Filter` can be invoked multiple times for a single HTTP request during internal server dispatches (such as `FORWARD`, `INCLUDE`, or asynchronous processing via `ASYNC`).
   * Spring's `OncePerRequestFilter` abstract class provides an idempotent execution guarantee: it checks an internal request attribute `alreadyFilteredAttribute` to guarantee that its `doFilterInternal()` logic runs **exactly once per incoming HTTP request**.
@@ -1674,13 +1585,13 @@ public class JwtService {
 * **Filter Ordering (`.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)`):**
   * Spring Security organizes security checks into an ordered list called the `SecurityFilterChain`. By injecting `JwtFilter` *before* `UsernamePasswordAuthenticationFilter`, our token validator inspects every incoming request before default form/session mechanisms execute.
 
-### 2. ≡ƒÄ» The Production Engineering Problem It Solves
+### 2. 🎯 The Production Engineering Problem It Solves
 * **ThreadLocal Leakage & Context Pollution in Thread Pools:**
   * High-concurrency servers like Tomcat reuse worker threads from an executor pool (`200` default threads). If authentication state is not properly managed, Request B on a recycled thread could inherit the security context left behind by Request A. `OncePerRequestFilter` combined with Spring Security's `SecurityContextPersistenceFilter` (or modern `SecurityContextHolderFilter`) guarantees the `SecurityContext` is cleanly populated per request and wiped at the end of the HTTP response lifecycle.
 * **Downstream CPU & Database Load Protection:**
   * If an invalid or expired token is passed, the filter aborts authentication immediately. Downstream services and database transactions are never invoked for unauthenticated requests.
 
-### 3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
 * **Q1: Why does `JwtFilter` extend `OncePerRequestFilter` instead of implementing `jakarta.servlet.Filter` directly?**
   > *"`OncePerRequestFilter` provides an idempotent execution guarantee across different servlet containers and request dispatch types (e.g., `REQUEST`, `FORWARD`, `INCLUDE`, `ASYNC`). A raw `Filter` can be invoked multiple times for a single HTTP request during internal servlet forwarding, resulting in duplicate token parsing, redundant database calls, and wasted CPU cycles."*
 * **Q2: How does `SecurityContextHolder` store the authenticated user in JVM memory, and why must the filter check if authentication is already present?**
@@ -1690,7 +1601,7 @@ public class JwtService {
 * **Q4: Why must `SessionCreationPolicy.STATELESS` be explicitly configured in `SecurityConfig`?**
   > *"By default, Spring Security creates stateful `HttpSession`s in Tomcat's memory and tracks users using `JSESSIONID` cookies. Setting `SessionCreationPolicy.STATELESS` instructs Spring Security to never create or query an `HttpSession`, ensuring the application remains 100% stateless across horizontal cluster nodes."*
 
-### ≡ƒöì Line-by-Line Code Breakdown of `JwtFilter.java`
+### 🔍 Line-by-Line Code Breakdown of `JwtFilter.java`
 
 ```java
 // Line 1: Package location inside security
@@ -1790,7 +1701,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
 ---
 
-### ≡ƒöì Line-by-Line Code Breakdown of Updated `SecurityConfig.java`
+### 🔍 Line-by-Line Code Breakdown of Updated `SecurityConfig.java`
 
 ```java
 package com.example.nexpay.config;
@@ -1854,7 +1765,7 @@ public class SecurityConfig {
 
 ## Step 6: `UserService.java` Login, `AuthController.java` Endpoint & `GlobalExceptionHandler.java` (RFC 7807)
 
-### 1. ≡ƒºá The Core Concept, Mathematics & Internal Mechanics
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
 * **BCrypt Password Verification (`passwordEncoder.matches`):**
   * BCrypt is a one-way trapdoor function; hashes cannot be decrypted.
   * When verifying:
@@ -1867,7 +1778,7 @@ public class SecurityConfig {
 * **RFC 7807 / Standardized Error Schema:**
   * Defines a uniform contract for HTTP error payloads (`timestamp`, `status`, `error`, `message`, `path`). Clients and frontends receive consistent JSON error payloads regardless of whether the error originated from validation, security, or business logic.
 
-### 2. ≡ƒÄ» The Production Engineering Problem It Solves
+### 2. 🎯 The Production Engineering Problem It Solves
 * **User Enumeration Defense:**
   * If a system returns *"Email not found"* when an email is unregistered, and *"Incorrect password"* when the password is wrong, attackers can scrape thousands of email addresses to discover which ones have accounts on the platform.
   * By returning a unified `"Invalid email or password"` with consistent response timing, user enumeration is completely defeated.
@@ -1875,7 +1786,7 @@ public class SecurityConfig {
   * Default Spring Boot behavior returns the Whitelabel Error Page, exposing internal Java class names, database table names, SQL queries, and library versions in production. Attackers weaponize stack traces for reconnaissance.
   * `@RestControllerAdvice` guarantees that internal stack traces are captured in server logs for engineers while the client receives only safe, sanitized JSON.
 
-### 3. ≡ƒÄñ Real Senior/Staff Interview Questions & Punchy Verbal Answers
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
 * **Q1: Why should you never return "User not found" vs "Wrong password" during authentication?**
   > *"Distinguishing between 'user not found' and 'incorrect password' introduces a **User Enumeration vulnerability**. Attackers can automate dictionary attacks against the `/login` endpoint to discover which email addresses correspond to real user accounts. Returning a generic 'Invalid email or password' message with consistent latency protects user privacy and stops credential harvesting."*
 * **Q2: How does `passwordEncoder.matches()` verify a password without decrypting the stored hash?**
@@ -1885,7 +1796,7 @@ public class SecurityConfig {
 * **Q4: How do you extract and format Bean Validation field errors in `@RestControllerAdvice`?**
   > *"When validation fails on `@Valid` parameters, Spring throws `MethodArgumentNotValidException`. In the handler method, we invoke `ex.getBindingResult().getFieldErrors()`, iterate over the collection, and collect `fieldError.getField()` and `fieldError.getDefaultMessage()` into a structured `Map<String, String>` returned with HTTP 400 Bad Request."*
 
-### ≡ƒöì Line-by-Line Code Breakdown of `UserService.java` (Login Method)
+### 🔍 Line-by-Line Code Breakdown of `UserService.java` (Login Method)
 
 ```java
 // Method inside UserService.java
@@ -1912,7 +1823,7 @@ public AuthResponse login(LoginRequest request) {
 
 ---
 
-### ≡ƒöì Line-by-Line Code Breakdown of `AuthController.java` (Login Endpoint)
+### 🔍 Line-by-Line Code Breakdown of `AuthController.java` (Login Endpoint)
 
 ```java
 // Endpoint inside AuthController.java
@@ -1930,7 +1841,7 @@ public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest reque
 
 ---
 
-### ≡ƒöì Line-by-Line Code Breakdown of `GlobalExceptionHandler.java`
+### 🔍 Line-by-Line Code Breakdown of `GlobalExceptionHandler.java`
 
 ```java
 package com.example.nexpay.exception;
@@ -2001,21 +1912,21 @@ public class GlobalExceptionHandler {
 
 | Day | Module / Architecture Focus | Deliverable | Status |
 |:---:|:---|:---|:---:|
-| **Day 1** *(Today)* | **JWT Auth & Global Error Handling** | `POST /api/auth/login` + `GlobalExceptionHandler` | Γ£à Completed |
-| **Day 2** | **Wallet Engine** | Auto-create wallet on signup, Balance lookup, Top-up (`@OneToOne`, `BigDecimal`) | Γ¼£ |
-| **Day 3** | **P2P Transfer Engine** | Pessimistic Locking (`SELECT FOR UPDATE`), ACID `@Transactional` | Γ¼£ |
-| **Day 4** | **Idempotency & Concurrency Safety** | Idempotency key headers to prevent double-spending | Γ¼£ |
-| **Day 5** | **Ledger & Audit Trail** | Paginated transaction history (`Pageable`, JPQL `@Query`), Double-Entry Ledger | Γ¼£ |
-| **Day 6** | **Redis Caching Layer** | Sub-5ms wallet balance lookup (`@Cacheable`, `@CacheEvict`) | Γ¼£ |
-| **Day 7** | **RabbitMQ Message Broker** | Async payment events, Queues, Exchanges, Notification workers | Γ¼£ |
-| **Day 8** | **Live WebSockets** | STOMP WebSocket push alerts to user browser in real-time | Γ¼£ |
-| **Day 9** | **Gemini AI (Fraud & NLP)** | Fraud analysis + NLP payment parsing ("Send Γé╣500 to Amit") | Γ¼£ |
-| **Day 10** | **Gemini AI (Receipt Scanner) & RBAC** | Multimodal Vision OCR bill splitting + Admin roles (`@PreAuthorize`) | Γ¼£ |
-| **Day 11** | **Testing & Swagger Docs** | 15+ JUnit & Mockito unit/integration tests + Interactive Swagger UI | Γ¼£ |
-| **Day 12** | **Docker Containerization** | Multi-container `docker-compose.yml` (App, PostgreSQL, Redis, RabbitMQ) | Γ¼£ |
-| **Day 13** | **Cloud Deployment (AWS)** | Deploy on **AWS EC2**, PostgreSQL on **AWS RDS**, Receipts on **AWS S3** | Γ¼£ |
-| **Day 14** | **Production CI/CD Pipeline** | GitHub Actions workflow: auto-test, build Docker, auto-deploy to EC2 | Γ¼£ |
-| **Day 15** | **Animated React 18 Frontend** | Bespoke financial UI, Framer Motion, Recharts, Confetti ≡ƒÄë | Γ¼£ |
+| **Day 1** *(Today)* | **JWT Auth & Global Error Handling** | `POST /api/auth/login` + `GlobalExceptionHandler` | ✅ Completed |
+| **Day 2** | **Wallet Engine** | Auto-create wallet on signup, Balance lookup, Top-up (`@OneToOne`, `BigDecimal`) | ⬜ |
+| **Day 3** | **P2P Transfer Engine** | Pessimistic Locking (`SELECT FOR UPDATE`), ACID `@Transactional` | ⬜ |
+| **Day 4** | **Idempotency & Concurrency Safety** | Idempotency key headers to prevent double-spending | ⬜ |
+| **Day 5** | **Ledger & Audit Trail** | Paginated transaction history (`Pageable`, JPQL `@Query`), Double-Entry Ledger | ⬜ |
+| **Day 6** | **Redis Caching Layer** | Sub-5ms wallet balance lookup (`@Cacheable`, `@CacheEvict`) | ⬜ |
+| **Day 7** | **RabbitMQ Message Broker** | Async payment events, Queues, Exchanges, Notification workers | ⬜ |
+| **Day 8** | **Live WebSockets** | STOMP WebSocket push alerts to user browser in real-time | ⬜ |
+| **Day 9** | **Gemini AI (Fraud & NLP)** | Fraud analysis + NLP payment parsing ("Send ₹500 to Amit") | ⬜ |
+| **Day 10** | **Gemini AI (Receipt Scanner) & RBAC** | Multimodal Vision OCR bill splitting + Admin roles (`@PreAuthorize`) | ⬜ |
+| **Day 11** | **Testing & Swagger Docs** | 15+ JUnit & Mockito unit/integration tests + Interactive Swagger UI | ⬜ |
+| **Day 12** | **Docker Containerization** | Multi-container `docker-compose.yml` (App, PostgreSQL, Redis, RabbitMQ) | ⬜ |
+| **Day 13** | **Cloud Deployment (AWS)** | Deploy on **AWS EC2**, PostgreSQL on **AWS RDS**, Receipts on **AWS S3** | ⬜ |
+| **Day 14** | **Production CI/CD Pipeline** | GitHub Actions workflow: auto-test, build Docker, auto-deploy to EC2 | ⬜ |
+| **Day 15** | **Animated React 18 Frontend** | Bespoke financial UI, Framer Motion, Recharts, Confetti 🎉 | ⬜ |
 
 ---
 
@@ -2025,13 +1936,13 @@ public class GlobalExceptionHandler {
 * **The Industry Clean Code Rule (Uncle Bob / Martin Fowler):** Good code is self-documenting. Comments should only explain the **WHY** (non-obvious architectural invariants, security threat models, or complex algorithms), never the **WHAT** (syntax mechanics that the language or framework already communicates).
 * **The Hiring Manager Red Flag:** Inline comments like `// Lombok: Auto-creates getters` or `// Line 1: Package location` immediately signal to interviewers and Staff Engineers that the code was copied line-by-line from a beginner tutorial.
 * **Production Transformation Example:**
-  * Γ¥î *Junior/Tutorial Style:*
+  * ❌ *Junior/Tutorial Style:*
     ```java
     // Spring Data JPA automatically writes the SQL:
     // "SELECT * FROM users WHERE email = ?"
     Optional<User> findByEmail(String email);
     ```
-  * Γ£à *Senior Enterprise Style:*
+  * ✅ *Senior Enterprise Style:*
     ```java
     Optional<User> findByEmail(String email);
     ```
@@ -2099,9 +2010,7 @@ public class GlobalExceptionHandler {
   * Happens when a user pastes duplicate JSON blocks in Postman:
     ```json
     { "email": "rishi@gmail.com" }
-    { ... } // ≡ƒæê Jackson finished reading the first object, and hit a second opening brace!
+    { ... } // 👈 Jackson finished reading the first object, and hit a second opening brace!
     ```
   * Jackson's parser encounters an extra `JsonToken.START_OBJECT` (`{`) after completing deserialization into the Java DTO, throwing `MismatchedInputException`.
   * Our `GlobalExceptionHandler` intercepts this and cleanly returns `HTTP 400 Bad Request` with structured JSON, preventing an unhandled server crash!
-
-
