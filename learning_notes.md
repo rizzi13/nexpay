@@ -2014,3 +2014,134 @@ public class GlobalExceptionHandler {
     ```
   * Jackson's parser encounters an extra `JsonToken.START_OBJECT` (`{`) after completing deserialization into the Java DTO, throwing `MismatchedInputException`.
   * Our `GlobalExceptionHandler` intercepts this and cleanly returns `HTTP 400 Bad Request` with structured JSON, preventing an unhandled server crash!
+
+---
+
+# Chapter 9: Day 2 — The Core Wallet Engine & Financial Precision Architecture
+
+## 1. Holistic Domain Masterclass: Financial Data Modeling & Monetary Precision
+
+In financial technology and high-concurrency banking systems, handling money is fundamentally different from handling standard application state. A floating-point rounding error of $0.00000001 can trigger regulatory audits, financial loss, or catastrophic balance drift over millions of transactions.
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              THE MONETARY DATA MODELING SPECTRUM                                       │
+├──────────────────────────────┬───────────────────────────────┬─────────────────────────────────────────┤
+│ Paradigm                     │ Mechanics                     │ Industry Application                    │
+├──────────────────────────────┼───────────────────────────────┼─────────────────────────────────────────┤
+│ 1. IEEE 754 Floating-Point   │ Binary base-2 representation  │ ❌ STRICTLY FORBIDDEN IN BANKING        │
+│    (float / double)          │ Causes precision drift        │ (Permitted only in 3D graphics/physics) │
+├──────────────────────────────┼───────────────────────────────┼─────────────────────────────────────────┤
+│ 2. Arbitrary-Precision       │ Unscaled BigInteger + 32-bit  │ 🏆 Global Banking Standard              │
+│    Decimals (BigDecimal)     │ scale. Exact base-10 math.    │ (NexPay, PayPal, Wall Street trading)   │
+├──────────────────────────────┼───────────────────────────────┼─────────────────────────────────────────┤
+│ 3. Minor Currency Units      │ Fixed-point integer math      │ 🏆 Modern Developer APIs                │
+│    (Integer Cents / Paise)   │ Stored as signed 64-bit Long  │ (Stripe, Adyen, Razorpay)               │
+└──────────────────────────────┴───────────────────────────────┴─────────────────────────────────────────┘
+```
+
+### Why Binary Floating-Point (`double` / `float`) is Strictly Forbidden in Banking
+Computers operate in binary (base-2: powers of $\frac{1}{2}, \frac{1}{4}, \frac{1}{8}, \dots$). Just as the fraction $\frac{1}{3}$ cannot be represented in a finite number of base-10 decimal digits ($0.333333\dots$), standard decimal fractions like $0.1$ ($\frac{1}{10}$) and $0.2$ ($\frac{1}{5}$) **cannot be represented exactly in binary floating-point (IEEE 754)**!
+
+```java
+// What happens in Java if you use double:
+double a = 0.1;
+double b = 0.2;
+System.out.println(a + b); 
+// Outputs: 0.30000000000000004  <-- THE 4 CENTS ERROR THAT DESTROYS BANKS!
+```
+
+If a payment platform processes $100{,}000{,}000$ transactions a day using `double`, accumulated rounding drift results in hundreds of thousands of dollars vanishing or appearing out of thin air (the classic *Superman III / Office Space* "Salami Slicing" anomaly).
+
+### How Java's `BigDecimal` Works Internally
+`BigDecimal` solves this by representing a number as an arbitrary-precision integer unscaled value combined with a 32-bit integer scale:
+
+$$\text{Value} = \text{unscaledValue} \times 10^{-\text{scale}}$$
+
+* For `new BigDecimal("100.5000")`:
+  * $\text{unscaledValue} = 1005000$ (stored in a Java `BigInteger`)
+  * $\text{scale} = 4$
+  * Every arithmetic operation (`add`, `subtract`, `multiply`) executes pure base-10 integer arithmetic with mathematical bounds checking, guaranteeing **zero precision loss**.
+
+---
+
+## 2. Component 1: `Wallet.java` — Relational Mapping, Constraints & Precision Math
+
+### 1. 🧠 The Core Concept, Mathematics & Internal Mechanics
+* **Surrogate Key Generation (`GenerationType.IDENTITY`):** Binds to PostgreSQL's `BIGSERIAL` sequence generator, producing unique 64-bit primary keys ($1, 2, 3, \dots$).
+* **`@OneToOne` Relational Architecture:**
+  * Establishes a 1-to-1 relational mapping between a `User` and their financial `Wallet`.
+  * `@JoinColumn(name = "user_id", nullable = false, unique = true)`:
+    * `nullable = false`: Guarantees no wallet can exist without an owning user (enforcing domain validity).
+    * `unique = true`: Enforces a physical PostgreSQL `UNIQUE INDEX` on `user_id`. Even under high-concurrency race conditions, PostgreSQL will reject duplicate wallet creation for the same user.
+* **Precision & Scale Configuration (`NUMERIC(19, 4)`):**
+  * `@Column(nullable = false, precision = 19, scale = 4)`
+  * `precision = 19`: Total number of significant digits (supports balances up to $999{,}999{,}999{,}999{,}999.9999$).
+  * `scale = 4`: Stores 4 decimal places. While currencies display 2 decimal places ($₹10.50$), financial engines require 4 decimal places ($₹10.5025$) to accurately calculate interest, micro-fees, and exchange rates without premature rounding truncation.
+* **Audit Lifecycle Hooks (`@PrePersist` & `@PreUpdate`):**
+  * `@PrePersist`: Automatically stamps `createdAt` and `updatedAt` with the current system time before the initial SQL `INSERT`.
+  * `@PreUpdate`: Automatically updates `updatedAt` with `LocalDateTime.now()` before any SQL `UPDATE` statement executes, providing tamper-proof audit trails.
+
+### 2. 🎯 The Production Engineering Problem It Solves
+* **Negative Balance & Balance Drift Protection:**
+  * Coupled with a database-level `CHECK (balance >= 0)` constraint, using `BigDecimal` guarantees that balance subtractions never produce floating-point underflow or phantom negative numbers.
+* **Multi-Wallet Concurrency Invariant:**
+  * In distributed systems, if two registration requests for the same user trigger concurrently, the application-level check might pass on both threads. The physical `UNIQUE (user_id)` constraint forces PostgreSQL to abort the second transaction, preserving the strict 1:1 business invariant.
+
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
+* **Q1: Why should you never use `new BigDecimal(double val)` and always use `new BigDecimal(String val)` or `BigDecimal.valueOf(double val)`?**
+  > *"The `BigDecimal(double)` constructor passes the binary floating-point approximation into `BigDecimal`. For example, `new BigDecimal(0.1)` produces `0.1000000000000000055511151231257827021181583404541015625` because `0.1` cannot be represented exactly in binary. In contrast, `new BigDecimal("0.1")` or `BigDecimal.valueOf(0.1)` parses the exact base-10 decimal representation, preserving complete precision."*
+* **Q2: Why is precision 19 and scale 4 standard for fintech database schemas instead of scale 2?**
+  > *"While consumer UI displays 2 decimal places (cents/paise), intermediate financial calculations—such as percentage fees (e.g. 1.75%), interest compounding, currency conversion, and tax withholding—frequently yield fractions of a cent. Storing 4 decimal places prevents cumulative rounding truncation errors across ledger transactions before final settlement."*
+* **Q3: What is the architectural difference between `@OneToOne` with `@JoinColumn` vs `@MapsId` (Shared Primary Key)?**
+  > *"With `@JoinColumn(name = "user_id")`, the child table (`wallets`) maintains its own independent primary key sequence (`id`) and a foreign key pointing to `users(id)`. With `@MapsId`, the child table shares the primary key of the parent (`wallets.id == users.id`), eliminating the extra surrogate sequence and foreign key index, but coupling their lifecycle identities tightly. In enterprise microservice migrations, independent surrogate keys with unique foreign key constraints offer superior schema evolution flexibility."*
+
+### 🔍 Line-by-Line Code Breakdown of `Wallet.java`
+```java
+package com.example.nexpay.wallet.model;
+
+import com.example.nexpay.user.model.User;
+import jakarta.persistence.*;
+import lombok.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity                                                 // 1. Registers this class as a managed JPA Entity table
+@Table(name = "wallets")                               // 2. Physical database table name: wallets
+@Data                                                   // 3. Lombok: generates getters, setters, toString(), equals(), hashCode()
+@NoArgsConstructor                                      // 4. Required by Hibernate reflection proxies
+@AllArgsConstructor                                     // 5. Full-parameter constructor for builders and testing
+@Builder                                                // 6. Enables fluent builder: Wallet.builder().balance(...).build()
+public class Wallet {
+
+    @Id                                                 // 7. Marks Primary Key column
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // 8. PostgreSQL BIGSERIAL auto-increment sequence (1, 2, 3...)
+    private Long id;
+
+    @OneToOne(fetch = FetchType.LAZY)                   // 9. 1-to-1 relationship with User; lazy-loaded on demand
+    @JoinColumn(name = "user_id", nullable = false, unique = true) // 10. Foreign key column with UNIQUE constraint
+    private User user;
+
+    @Column(nullable = false, precision = 19, scale = 4) // 11. Arbitrary precision: 15 whole digits, 4 decimal places
+    @Builder.Default
+    private BigDecimal balance = BigDecimal.ZERO;       // 12. Defaults balance to exact 0.0000
+
+    @Column(nullable = false, length = 3)               // 13. ISO 4217 currency code (e.g., "INR", "USD", "EUR")
+    @Builder.Default
+    private String currency = "INR";
+
+    private LocalDateTime createdAt;                    // 14. Immutable creation audit timestamp
+    private LocalDateTime updatedAt;                    // 15. Dynamic modification audit timestamp
+
+    @PrePersist                                         // 16. Lifecycle callback executed prior to SQL INSERT
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate                                          // 17. Lifecycle callback executed prior to SQL UPDATE
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+}
+```
