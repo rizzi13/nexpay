@@ -11,15 +11,15 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")   // This creates a table named "users" in PostgreSQL
-@Data                    // Lombok: Auto-creates getters, setters, toString()
-@Builder                 // Lombok: Allows clean object creation (e.g. User.builder().build())
-@NoArgsConstructor       // Lombok: Auto-creates empty constructor (JPA requirement)
-@AllArgsConstructor      // Lombok: Auto-creates constructor with all fields
+@Table(name = "users")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Auto-increments id (1, 2, 3...)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank(message = "Full name is required")
@@ -28,22 +28,23 @@ public class User {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Please provide a valid email")
-    @Column(unique = true, nullable = false)  // No two users can have the same email
+    @Column(unique = true, nullable = false)
     private String email;
 
     @Column(name = "password_hash", nullable = false)
-    private String passwordHash;              // We will save hashed password here for security
+    private String passwordHash;
 
     @Column(unique = true)
-    private String phone;                     // Phone number for P2P transfers
+    private String phone;
 
     @Enumerated(EnumType.STRING)
-    private Role role = Role.USER;           // Roles (e.g. USER, ADMIN)
+    @Builder.Default
+    private Role role = Role.USER;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @PrePersist  // This method runs automatically before we insert a new user row in the database
+    @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
     }

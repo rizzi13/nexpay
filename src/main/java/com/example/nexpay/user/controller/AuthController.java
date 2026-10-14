@@ -18,7 +18,6 @@ public class AuthController {
 
     private final UserService userService;
 
-    // POST /api/auth/register
     @PostMapping("/register")
     public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
         User registeredUser = userService.registerUser(request);
@@ -27,7 +26,6 @@ public class AuthController {
                 .body("User registered successfully! ID: " + registeredUser.getId());
     }
 
-    // POST /api/auth/login
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = userService.login(request);

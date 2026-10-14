@@ -26,7 +26,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // Exposes the AuthenticationManager so UserService can verify credentials
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
@@ -35,16 +34,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 1. Disable CSRF (safe because we use stateless Bearer headers)
                 .csrf(csrf -> csrf.disable())
-                // 2. Stateless session policy (no session cookies in RAM)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 3. Routing rules
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Open register and login publicly
-                        .anyRequest().authenticated()               // Lock all other routes
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .anyRequest().authenticated()
                 )
-                // 4. Station the JwtFilter guard BEFORE the standard username-password filter
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -29,33 +29,25 @@ public class JwtFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // 1. Grab Authorization header
         final String authHeader = request.getHeader("Authorization");
 
-        // 2. If no Bearer token, let it pass (public endpoints will handle it)
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 3. Extract the token after "Bearer "
         final String jwt = authHeader.substring(7);
         final String userEmail;
 
         try {
             userEmail = jwtService.extractEmail(jwt);
         } catch (Exception e) {
-            // Bad/expired token -> continue without authenticating
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 4. If email is valid and user is not yet marked authenticated on this thread
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
             if (jwtService.isTokenValid(jwt, userEmail)) {
-
-                // Build a minimal UserDetails object representing the authenticated user
                 UserDetails userDetails = User.builder()
                         .username(userEmail)
                         .password("")
@@ -70,13 +62,10 @@ public class JwtFilter extends OncePerRequestFilter {
                         );
 
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                // 5. Stamp the request: Store authentication in ThreadLocal memory!
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 
-        // 6. Pass the request to the next stop
         filterChain.doFilter(request, response);
     }
 }
