@@ -73,6 +73,7 @@
     - [4. Component 3: Updating UserService.java](#4-component-3-updating-userservicejava--multi-entity-orchestration--transactional-atomicity)
     - [5. Component 4: WalletService.java, DTOs & WalletController.java](#5-component-4-walletservicejava-dtos--walletcontrollerjava--financial-endpoints--idor-defense)
     - [6. Architectural Deep Dive: Why Layered Architecture & Package-by-Feature?](#6-architectural-deep-dive-why-layered-architecture--package-by-feature)
+    - [7. PostgreSQL Engineering Deep Dive: What PostgreSQL Actually Does Under Hibernate's Hood](#7-postgresql-engineering-deep-dive-what-postgresql-actually-does-under-hibernates-hood)
 
 ---
 
@@ -2691,3 +2692,58 @@ In enterprise fintech handling billions of dollars, this produces catastrophic f
   * *The Advantages:*
     1. **High Cohesion & Low Coupling:** The Wallet team works exclusively inside `wallet/` without risking merge conflicts or regressions in `user/`.
     2. **Zero-Friction Microservices Extraction:** When NexPay scales to 10 million users, the `wallet` package can be extracted into an independent Spring Boot microservice repo in minutes with zero refactoring.
+
+
+---
+
+## 7. PostgreSQL Engineering Deep Dive: What PostgreSQL Actually Does Under Hibernate's Hood
+
+A common question junior and mid-level backend developers ask:
+> *"Because Hibernate automatically generates queries and manages schemas, am I actually learning PostgreSQL, or am I just learning Java annotations?"*
+
+In high-concurrency production engineering, **nobody writes raw SQL by hand in terminal**. The true mark of a Senior/Staff Engineer is understanding **how PostgreSQL physically executes and stores data on disk beneath ORM abstractions**.
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                          JAVA ANNOTATION TO POSTGRESQL ENGINE BEHAVIOR                                 │
+├───────────────────────────────────────┬────────────────────────────────────────────────────────────────┤
+│ What You Wrote in Java                │ What PostgreSQL Did Physically in Memory & Disk Pages          │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ @Table(name = "users")                │ Escaped PostgreSQL's reserved system catalog keyword "USER"    │
+│                                       │ (avoiding internal database role syntax collisions).           │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ @GeneratedValue(                      │ Bound to PostgreSQL's native BIGSERIAL sequence generator      │
+│   strategy = GenerationType.IDENTITY) │ (users_id_seq) producing signed 64-bit integers (up to 2^63-1).│
+├───────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ @Column(unique = true)                │ Allocated a physical PostgreSQL B-Tree Unique Index file       │
+│                                       │ on disk, guaranteeing O(log N) duplicate rejection.            │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ BigDecimal (precision=19, scale=4)    │ Mapped to PostgreSQL's native NUMERIC(19, 4) type             │
+│                                       │ for exact base-10 arbitrary-precision monetary disk storage.   │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ @JoinColumn(name = "user_id")         │ Created a physical FOREIGN KEY constraint pointing to          │
+│                                       │ users(id), enforcing referential integrity at the engine level.│
+├───────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ @Transactional                        │ Managed PostgreSQL's Write-Ahead Log (WAL) undo buffers        │
+│                                       │ via connection.setAutoCommit(false) -> BEGIN / COMMIT.         │
+└───────────────────────────────────────┴────────────────────────────────────────────────────────────────┘
+```
+
+### 1. The PostgreSQL CLI Inspection Toolkit (`psql`)
+To verify what PostgreSQL physically built, developers inspect the database engine directly:
+
+```powershell
+# 1. Inspect physical tables in nexpaydb:
+psql -U postgres -d nexpaydb -c "\dt"
+
+# 2. Inspect physical column types, indexes, and foreign keys on wallets:
+psql -U postgres -d nexpaydb -c "\d wallets"
+
+# 3. Query physical disk rows directly:
+psql -U postgres -d nexpaydb -c "SELECT * FROM wallets;"
+```
+
+### 2. What's Coming in Day 3: Native PostgreSQL Concurrency & Row-Level Locking
+On Day 3, our PostgreSQL knowledge transitions into high-concurrency database internals:
+* **`SELECT ... FOR UPDATE`:** Utilizing PostgreSQL's Lock Manager (`pg_locks`) to place exclusive row-level locks on disk tuples, preventing concurrent double-spending race conditions.
+* **MVCC (Multi-Version Concurrency Control):** How PostgreSQL isolates concurrent read/write operations without table-level blocking using hidden system header columns (`xmin` and `xmax`).
