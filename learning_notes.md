@@ -66,6 +66,13 @@
     - [Step 6: Login Endpoint & GlobalExceptionHandler.java (RFC 7807)](#step-6-userservicejava-login-authcontrollerjava-endpoint--globalexceptionhandlerjava-rfc-7807)
   - [Chapter 7: 15-Day Master Roadmap](#chapter-7-15-day-master-roadmap)
   - [Chapter 8: Production Engineering Practices, DevOps & Code Standards](#chapter-8-production-engineering-practices-devops--code-standards)
+  - [Chapter 9: Day 2 — The Core Wallet Engine & Financial Precision Architecture](#chapter-9-day-2--the-core-wallet-engine--financial-precision-architecture)
+    - [1. Holistic Domain: Financial Data Modeling & Monetary Precision](#1-holistic-domain-masterclass-financial-data-modeling--monetary-precision)
+    - [2. Component 1: Wallet.java](#2-component-1-walletjava--relational-mapping-constraints--precision-math)
+    - [3. Component 2: WalletRepository.java](#3-component-2-walletrepositoryjava--dynamic-proxies-property-expression-grammar--the-optional-monad)
+    - [4. Component 3: Updating UserService.java](#4-component-3-updating-userservicejava--multi-entity-orchestration--transactional-atomicity)
+    - [5. Component 4: WalletService.java, DTOs & WalletController.java](#5-component-4-walletservicejava-dtos--walletcontrollerjava--financial-endpoints--idor-defense)
+    - [6. Architectural Deep Dive: Why Layered Architecture & Package-by-Feature?](#6-architectural-deep-dive-why-layered-architecture--package-by-feature)
 
 ---
 
