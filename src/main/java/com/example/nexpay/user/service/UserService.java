@@ -6,20 +6,26 @@ import com.example.nexpay.user.dto.LoginRequest;
 import com.example.nexpay.user.dto.RegisterRequest;
 import com.example.nexpay.user.model.User;
 import com.example.nexpay.user.repository.UserRepository;
+import com.example.nexpay.wallet.model.Wallet;
+import com.example.nexpay.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
+    private final WalletRepository walletRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
+    @Transactional
     public User registerUser(RegisterRequest request) {
-
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email is already registered!");
         }
@@ -36,11 +42,20 @@ public class UserService {
                 .role(User.Role.USER)
                 .build();
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        Wallet wallet = Wallet.builder()
+                .user(savedUser)
+                .balance(new BigDecimal("1000.0000"))
+                .currency("INR")
+                .build();
+
+        walletRepository.save(wallet);
+
+        return savedUser;
     }
 
     public AuthResponse login(LoginRequest request) {
-
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
@@ -49,7 +64,6 @@ public class UserService {
         }
 
         String token = jwtService.generateToken(user.getEmail());
-
         return new AuthResponse(token, user.getEmail(), user.getFullName());
     }
 }

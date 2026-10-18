@@ -2252,3 +2252,192 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
     Optional<Wallet> findByUserId(Long userId);
 }
 ```
+
+
+---
+
+## 4. Component 3: Updating `UserService.java` — Multi-Entity Orchestration & `@Transactional` Atomicity
+
+```
+[ POST /api/auth/register ]
+            │
+            ▼
+┌────────────────────────────────────────────────────────┐
+│             @Transactional Boundary (Proxy)            │
+│  Connection.setAutoCommit(false);                      │
+│                                                        │
+│  1. userRepository.save(user)     ──► INSERT users     │
+│  2. walletRepository.save(wallet) ──► INSERT wallets   │
+│                                                        │
+│  Connection.commit(); (Both succeed or both rollback!) │
+└────────────────────────────────────────────────────────┘
+```
+
+### 1. 🧠 The Core Concept, Mathematics & Low-Level Mechanics
+* **Service Layer Multi-Entity Coordination:** `UserService` coordinates writes across two separate repositories (`UserRepository` and `WalletRepository`) to maintain the business invariant that every user owns a provisioned wallet.
+* **`@Transactional` Spring AOP Interception:**
+  * When entering `registerUser()`, Spring's CGLIB proxy intercepts execution, obtains a JDBC `Connection` from HikariCP, and calls `connection.setAutoCommit(false)`.
+  * Both SQL `INSERT` statements execute under the same transaction ID in PostgreSQL.
+  * If an unhandled `RuntimeException` propagates, the proxy catches it and invokes `connection.rollback()`, ensuring atomicity.
+
+---
+
+### 2. 🎯 The Production Engineering Problem It Solves
+* **The "Ghost User / Orphan Account" Anomaly:**
+  * Without `@Transactional`: If saving the user succeeds but the server crashes before the wallet is persisted, the user exists in PostgreSQL without a wallet. Future logins or payment transfers immediately crash with `WalletNotFoundException`.
+  * With `@Transactional`: Guarantees $All \lor Nothing$. A user never exists without a wallet.
+
+---
+
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
+* **Q1: What exceptions trigger an automatic rollback in Spring's `@Transactional` by default?**
+  > *"By default, Spring's `@Transactional` only triggers rollback on **unchecked exceptions** (`RuntimeException` and `Error`). It does **not** roll back on checked exceptions (`java.lang.Exception`). If rollback is required for checked exceptions, it must be explicitly configured via `@Transactional(rollbackFor = Exception.class)`."*
+* **Q2: Why should wallet provisioning happen in the same transaction as user registration rather than an asynchronous event?**
+  > *"Because a wallet is a core domain invariant for a fintech user. If wallet provisioning were deferred to an asynchronous event queue (e.g. RabbitMQ/Kafka), a race condition could occur where the user completes registration, logs in immediately via JWT, and attempts an API call before the background worker finishes creating their wallet, resulting in 404 errors."*
+
+---
+
+### 🔍 Line-by-Line Code Breakdown of Updated `UserService.java`
+```java
+package com.example.nexpay.user.service;
+
+import com.example.nexpay.security.JwtService;
+import com.example.nexpay.user.dto.AuthResponse;
+import com.example.nexpay.user.dto.LoginRequest;
+import com.example.nexpay.user.dto.RegisterRequest;
+import com.example.nexpay.user.model.User;
+import com.example.nexpay.user.repository.UserRepository;
+import com.example.nexpay.wallet.model.Wallet;
+import com.example.nexpay.wallet.repository.WalletRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+
+@Service
+@RequiredArgsConstructor
+public class UserService {
+
+    private final UserRepository userRepository;
+    private final WalletRepository walletRepository;     // 1. Injected Wallet DAO
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+
+    @Transactional                                      // 2. ACID Atomic Transaction: both User & Wallet commit together!
+    public User registerUser(RegisterRequest request) {
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email is already registered!");
+        }
+
+        if (userRepository.existsByPhone(request.getPhone())) {
+            throw new RuntimeException("Phone number is already registered!");
+        }
+
+        // 3. Build & save the user
+        User user = User.builder()
+                .fullName(request.getFullName())
+                .email(request.getEmail())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .phone(request.getPhone())
+                .role(User.Role.USER)
+                .build();
+
+        User savedUser = userRepository.save(user);
+
+        // 4. Auto-provision a digital wallet with ₹1,000.00 welcome bonus!
+        Wallet wallet = Wallet.builder()
+                .user(savedUser)
+                .balance(new BigDecimal("1000.0000"))   // Exact base-10 monetary math
+                .currency("INR")
+                .build();
+
+        walletRepository.save(wallet);                  // 5. Persisted in the exact same DB transaction
+
+        return savedUser;
+    }
+
+    public AuthResponse login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new RuntimeException("Invalid email or password");
+        }
+
+        String token = jwtService.generateToken(user.getEmail());
+        return new AuthResponse(token, user.getEmail(), user.getFullName());
+    }
+}
+```
+
+
+---
+
+### 5. Architectural Deep Dive: The CGLIB Transaction Proxy & Low-Level JDBC Mechanics
+
+```
+[ AuthController ]
+        │
+        │ Calls: userService.registerUser(request)
+        ▼
+┌────────────────────────────────────────────────────────┐
+│              THE SPRING CGLIB PROXY (The Bodyguard)    │
+│                                                        │
+│  1. Borrows physical TCP connection from HikariCP pool │
+│  2. Calls: connection.setAutoCommit(false);            │
+│  3. Starts try-catch block                             │
+│                                                        │
+│         │ (Delegates call)                             │
+│         ▼                                              │
+│     [ YOUR ACTUAL UserService.registerUser() ]         │
+│       • userRepository.save(user)                      │
+│       • walletRepository.save(wallet)                  │
+│         │                                              │
+│         ▼                                              │
+│  4. Did an exception happen?                           │
+│     ├── NO  ──► Calls: connection.commit();            │
+│     └── YES ──► Calls: connection.rollback();          │
+│                                                        │
+│  5. Returns connection back to HikariCP pool           │
+└────────────────────────────────────────────────────────┘
+```
+
+#### The Real-World Analogy: Booking a Flight + Hotel
+* **The Scenario:** You book a flight ticket (₹5,000) and a hotel room (₹10,000).
+* **Without a Transaction:** The flight succeeds, but the hotel is sold out. Your money is deducted for the flight, but you have no place to stay. The system state is corrupted.
+* **With a Transaction (Atomicity):** The booking agent cancels the flight and refunds your money. **Either BOTH succeed, or NEITHER happens.**
+  * In NexPay: Flight = `userRepository.save(user)`, Hotel = `walletRepository.save(wallet)`.
+
+#### What `connection.setAutoCommit(false)` Actually Does
+By default, relational databases operate in **Auto-Commit Mode**: every SQL statement is committed to disk immediately upon execution.
+* When Spring sets `setAutoCommit(false)`, it instructs PostgreSQL:
+  > *"Hold on! Do not permanently write these rows to disk yet. Stage them in undo/WAL buffers. Wait until I explicitly send the `commit()` command."*
+* If any error occurs prior to `commit()`, PostgreSQL executes `ROLLBACK`, purging all staged writes and preserving 100% database consistency.
+
+#### What `@Transactional` Generates Behind the Scenes (In Pure Java/JDBC)
+If Spring's `@Transactional` annotation did not exist, engineers would be forced to write this repetitive boilerplate manually on every service method:
+
+```java
+// What Spring's CGLIB Proxy generates in bytecode:
+Connection connection = hikariDataSource.getConnection(); // 1. Borrow from pool
+
+try {
+    connection.setAutoCommit(false); // 2. Begin transaction!
+
+    // --- YOUR DOMAIN CODE EXECUTES HERE ---
+    User user = userRepository.save(newUser);
+    Wallet wallet = walletRepository.save(newWallet);
+    // -------------------------------------
+
+    connection.commit(); // 3. Both succeeded! Atomically persist to disk!
+} catch (RuntimeException ex) {
+    connection.rollback(); // 4. Failure! Wipe out all partial inserts!
+    throw ex;              // Re-throw so GlobalExceptionHandler can format RFC 7807 JSON
+} finally {
+    connection.setAutoCommit(true);
+    connection.close();    // 5. Return connection back to HikariCP pool
+}
+```
