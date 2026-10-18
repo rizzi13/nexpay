@@ -2441,3 +2441,246 @@ try {
     connection.close();    // 5. Return connection back to HikariCP pool
 }
 ```
+
+
+---
+
+## 5. Component 4: `WalletService.java`, DTOs & `WalletController.java` — Financial Endpoints & IDOR Defense
+
+```
+[ POSTMAN (Client with Bearer JWT) ]
+                 │
+                 │  GET /api/wallet/balance (No userId in URL!)
+                 ▼
+[ JwtFilter ] ──────────────────► Validates token & extracts email -> "rishi@gmail.com"
+                 │                Binds to SecurityContextHolder.getContext().setAuthentication(auth)
+                 ▼
+[ WalletController ] ───────────► Reads principal: authentication.getName() (IDOR Immune!)
+                 │
+                 │  Calls: walletService.getBalance("rishi@gmail.com")
+                 ▼
+[ WalletService ] ──────────────► 1. userRepository.findByEmail("rishi@gmail.com")
+                 │                2. walletRepository.findByUserId(user.getId())
+                 ▼
+[ Response ] ───────────────────► Returns HTTP 200 OK:
+                                  {
+                                    "balance": 1000.0000,
+                                    "currency": "INR",
+                                    "updatedAt": "2026-10-19T00:40:00"
+                                  }
+```
+
+### 1. 🧠 The Core Concept, Mathematics & Low-Level Mechanics
+* **IDOR (Insecure Direct Object Reference) Elimination:**
+  * Client never passes `userId` in parameters (`?userId=123`).
+  * Email is retrieved directly from the cryptographically verified JWT in `SecurityContextHolder` (`authentication.getName()`). A user can *only* query their own balance.
+* **`BigDecimal` Immutability in JVM Heap:**
+  * In Java, `BigDecimal` objects are immutable. Calling `wallet.getBalance().add(amount)` allocates a brand new `BigDecimal` on the heap without mutating the original reference. Reassignment (`wallet.setBalance(...)`) is mandatory.
+* **JSR-380 `@DecimalMin` Boundary Validation:**
+  * `@DecimalMin(value = "1.0000")` guarantees top-up amounts are positive numbers, shielding the financial engine from zero or negative balance exploits in $0.02\text{ms}$ at the controller boundary.
+
+---
+
+### 2. 🎯 Production Failure Mode It Solves
+* **Negative Balance / Drain Exploit:** Without validation, malicious users could submit `{"amount": -500.00}` to convert a deposit endpoint into an illegal withdrawal.
+* **Horizontal Privilege Escalation:** An authenticated user tampering with client state cannot inspect or manipulate other users' wallets because the identity is anchored to the server-verified JWT signature.
+
+---
+
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
+* **Q1: Why should you never accept `userId` as a request parameter in balance or payment endpoints?**
+  > *"Exposing `userId` in client request bodies or query parameters creates an **Insecure Direct Object Reference (IDOR)** vulnerability (OWASP Top 10). Attackers can iterate IDs to inspect or drain other users' funds. The user identity must always be resolved server-side from the verified authentication token."*
+* **Q2: Why does calling `balance.add(amount)` without variable reassignment fail?**
+  > *"`BigDecimal` is an immutable class designed for precision and thread-safety. Methods like `add()` return a new instance holding the calculated result. Without reassigning `wallet.setBalance(...)`, the calculation is discarded and the original balance remains unchanged."*
+
+---
+
+### 🔍 Production Source Code Breakdown
+
+#### `WalletResponse.java` (DTO)
+```java
+package com.example.nexpay.wallet.dto;
+
+import lombok.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class WalletResponse {
+    private BigDecimal balance;
+    private String currency;
+    private LocalDateTime updatedAt;
+}
+```
+
+#### `TopUpRequest.java` (DTO)
+```java
+package com.example.nexpay.wallet.dto;
+
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+import java.math.BigDecimal;
+
+@Data
+public class TopUpRequest {
+    @NotNull(message = "Top-up amount is required")
+    @DecimalMin(value = "1.0000", message = "Top-up amount must be at least ₹1.00")
+    private BigDecimal amount;
+}
+```
+
+#### `WalletService.java`
+```java
+package com.example.nexpay.wallet.service;
+
+import com.example.nexpay.user.model.User;
+import com.example.nexpay.user.repository.UserRepository;
+import com.example.nexpay.wallet.dto.WalletResponse;
+import com.example.nexpay.wallet.model.Wallet;
+import com.example.nexpay.wallet.repository.WalletRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.math.BigDecimal;
+
+@Service
+@RequiredArgsConstructor
+public class WalletService {
+
+    private final WalletRepository walletRepository;
+    private final UserRepository userRepository;
+
+    public WalletResponse getBalance(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found!"));
+
+        Wallet wallet = walletRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new RuntimeException("Wallet not found!"));
+
+        return WalletResponse.builder()
+                .balance(wallet.getBalance())
+                .currency(wallet.getCurrency())
+                .updatedAt(wallet.getUpdatedAt())
+                .build();
+    }
+
+    @Transactional
+    public WalletResponse topUp(String email, BigDecimal amount) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found!"));
+
+        Wallet wallet = walletRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new RuntimeException("Wallet not found!"));
+
+        wallet.setBalance(wallet.getBalance().add(amount));
+        Wallet savedWallet = walletRepository.save(wallet);
+
+        return WalletResponse.builder()
+                .balance(savedWallet.getBalance())
+                .currency(savedWallet.getCurrency())
+                .updatedAt(savedWallet.getUpdatedAt())
+                .build();
+    }
+}
+```
+
+#### `WalletController.java`
+```java
+package com.example.nexpay.wallet.controller;
+
+import com.example.nexpay.wallet.dto.TopUpRequest;
+import com.example.nexpay.wallet.dto.WalletResponse;
+import com.example.nexpay.wallet.service.WalletService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/wallet")
+@RequiredArgsConstructor
+public class WalletController {
+
+    private final WalletService walletService;
+
+    @GetMapping("/balance")
+    public ResponseEntity<WalletResponse> getBalance(Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(walletService.getBalance(email));
+    }
+
+    @PostMapping("/top-up")
+    public ResponseEntity<WalletResponse> topUp(
+            Authentication authentication,
+            @Valid @RequestBody TopUpRequest request
+    ) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(walletService.topUp(email, request.getAmount()));
+    }
+}
+```
+
+
+---
+
+## 6. Architectural Deep Dive: Why Layered Architecture & Package-by-Feature?
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                          THE 5-TIER LAYERED ENTERPRISE ARCHITECTURE                                    │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+          [ Client / Postman (Customer) ]
+                        │
+                        │ 1. Transmits Order Slip (Inbound DTO)
+                        ▼
+          [ CONTROLLER (The Waiter / Cashier) ]
+            • Intercepts HTTP request, validates Bearer JWT authentication.
+            • Does NOT cook! Does NOT talk to the database!
+            • Hands payload over to the Service layer.
+                        │
+                        ▼
+          [ DTO - Data Transfer Object (The Paper Slip / Receipt) ]
+            • Boundary contract: TopUpRequest & WalletResponse.
+            • Customer never touches or sees the internal database columns!
+                        │
+                        ▼
+          [ SERVICE (The Head Chef / The Business Brain) ]
+            • Executes business invariants: "Does user exist? Is amount valid?"
+            • Performs mathematical operations: balance.add(amount).
+            • Orchestrates @Transactional ACID boundaries.
+                        │
+                        ▼
+          [ REPOSITORY (The Storekeeper / Librarian) ]
+            • The only component allowed to enter the database storehouse!
+            • Translates domain intentions into optimized SQL queries.
+                        │
+                        ▼
+          [ MODEL (The Pantry / Storage Vault) ]
+            • Physical database table blueprint (@Entity @Table(name = "wallets")).
+```
+
+### 1. Why Not Put All Code in One File or One Folder? (Separation of Concerns)
+In beginner scripts, developers frequently bundle HTTP endpoints, validation logic, business math, and raw SQL queries into a single monolithic class. 
+
+In enterprise fintech handling billions of dollars, this produces catastrophic failure modes:
+1. **Security Exfiltration (CWE-200):** If controllers talk directly to database entities, internal columns (`passwordHash`, `salt`, `internalRiskScore`) leak over HTTP JSON.
+2. **Untestable Code:** You cannot unit-test business math (e.g., wallet top-up logic) without booting up a web server or database connection.
+3. **High Coupling:** Altering an HTTP parameter breaks database schemas, and altering a database column breaks mobile apps.
+
+### 2. Package-by-Layer vs. Package-by-Feature: Why Big Tech Groups by Domain
+* **Package-by-Layer (Junior / Tutorial Style):**
+  * One giant `controllers/` folder with 50 controllers.
+  * One giant `services/` folder with 50 services.
+  * One giant `models/` folder with 50 models.
+  * *The Problem:* To understand how "Wallets" work, an engineer must jump across 5 completely separate folders across the project tree.
+* **Package-by-Feature (Senior / Big Tech Style — Used in NexPay):**
+  * `com.example.nexpay.user` $ightarrow$ Everything related to identity and login.
+  * `com.example.nexpay.wallet` $ightarrow$ Everything related to money, balances, and top-ups.
+  * *The Advantages:*
+    1. **High Cohesion & Low Coupling:** The Wallet team works exclusively inside `wallet/` without risking merge conflicts or regressions in `user/`.
+    2. **Zero-Friction Microservices Extraction:** When NexPay scales to 10 million users, the `wallet` package can be extracted into an independent Spring Boot microservice repo in minutes with zero refactoring.
