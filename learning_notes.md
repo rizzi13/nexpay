@@ -2145,3 +2145,110 @@ public class Wallet {
     }
 }
 ```
+
+
+---
+
+## 3. Component 2: `WalletRepository.java` — Dynamic Proxies, Property Expression Grammar & The Optional Monad
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                          SPRING DATA JPA QUERY DERIVATION GRAMMAR                                      │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+          find  +  By  +  User  +  Id  (Long userId)
+            │       │       │       │
+          Action  WHERE   Entity  Field
+            │       │       │       │
+            ▼       ▼       ▼       ▼
+    SELECT * FROM wallets WHERE user_id = ?
+```
+
+### 1. 🧠 The Core Concept, Mathematics & Low-Level Mechanics
+* **Dynamic Property Traversal & AST Grammars:**
+  * When declaring `Optional<Wallet> findByUserId(Long userId);`, the `Wallet` entity does not contain a raw scalar property named `userId`; it contains an object reference: `private User user;`.
+  * Spring Data JPA's property parser uses a camel-case tokenization algorithm:
+    1. Checks if `Wallet` has a property named `userId` $\rightarrow$ False.
+    2. Splits from the right at camel-case boundaries: `User` and `Id`.
+    3. Verifies that `Wallet` possesses property `user` of type `User`, and `User` possesses property `id` of type `Long`.
+    4. Compiles this property path into a JPQL query tree:
+       $$\text{JPQL: } \texttt{SELECT w FROM Wallet w WHERE w.user.id = :userId}$$
+       $$\text{SQL: } \texttt{SELECT * FROM wallets WHERE user_id = ?}$$
+  * This allows direct querying against the foreign key column `user_id` without requiring an explicit SQL `JOIN` or loading the `User` entity into the JVM heap!
+* **Dynamic Proxy Synthesis:** At boot time, Spring Data synthesizes a `java.lang.reflect.Proxy` implementing `WalletRepository` backed by `SimpleJpaRepository`, translating the method call into a prepared statement executed via HikariCP.
+
+---
+
+### 2. 🎯 The Optional Monad: Killing `if-else` Boilerplate & Defeating `NullPointerException`
+
+The `NullPointerException` (NPE) is historically the number one source of production crashes in enterprise Java applications. 
+
+#### The Traditional `if-else` Vulnerability (Pre-Java 8):
+```java
+// ❌ Dangerous & Boilerplate-Heavy
+Wallet wallet = walletRepository.findByUserId(userId);
+
+if (wallet != null) {
+    return wallet.getBalance();
+} else {
+    throw new RuntimeException("Wallet not found!");
+}
+```
+* **The Failure Mode:** If an engineer forgets to write the `if (wallet != null)` guard, the JVM throws an uncaught `NullPointerException` at runtime, causing unhandled HTTP 500 server crashes.
+
+#### How `Optional<T>` Eliminates `if-else` Statements:
+`Optional<T>` is a monadic container type: it represents an immutable box that either contains an active reference (`Optional.of(val)`) or is empty (`Optional.empty()`). 
+
+Java physically prevents you from accessing the inner object without unwrapping the box, replacing procedural `if-else` checks with declarative functional combinators:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              THE OPTIONAL FUNCTIONAL COMBINATOR MATRIX                                 │
+├──────────────────────────┬───────────────────────────────────────────┬─────────────────────────────────┤
+│ Desired Behavior         │ Modern Functional Syntax (Zero if-else!)  │ What Happens Under The Hood     │
+├──────────────────────────┼───────────────────────────────────────────┼─────────────────────────────────┤
+│ 1. Throw error on absent │ walletRepository.findByUserId(id)         │ If empty, halts flow and throws │
+│                          │     .orElseThrow(() -> new NotFound());   │ sanitized business exception.   │
+├──────────────────────────┼───────────────────────────────────────────┼─────────────────────────────────┤
+│ 2. Return safe fallback  │ walletRepository.findByUserId(id)         │ If empty, returns default value │
+│    default value         │     .map(Wallet::getBalance)             │ (e.g. BigDecimal.ZERO) with     │
+│                          │     .orElse(BigDecimal.ZERO);             │ zero null pointer risk.         │
+├──────────────────────────┼───────────────────────────────────────────┼─────────────────────────────────┤
+│ 3. Execute conditional   │ walletRepository.findByUserId(id)         │ Runs lambda strictly when       │
+│    side-effect action    │     .ifPresent(w -> notify(w));           │ entity exists; no-op if empty.  │
+└──────────────────────────┴───────────────────────────────────────────┴─────────────────────────────────┘
+```
+
+> [!WARNING]
+> **The `Optional.isPresent()` Anti-Pattern:**
+> Calling `if (walletOpt.isPresent()) { Wallet w = walletOpt.get(); } else { ... }` is considered a junior anti-pattern because it replicates traditional `if-else` null checks. Modern Spring Boot services use `.orElseThrow()` or `.map()` pipelines exclusively.
+
+---
+
+### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
+* **Q1: How does Spring Data JPA resolve `findByUserId` when the entity property is named `user`?**
+  > *"Spring Data's property parser tokenizes the method name by camel-case boundaries. When resolving `UserId`, it detects that `Wallet` has no direct field named `userId`, so it splits it into `User` and `Id`. It navigates from `Wallet.user` to `User.id` and generates a parameterized SQL predicate `WHERE user_id = ?`, querying the foreign key directly without loading the User entity."*
+* **Q2: Why should repository methods return `Optional<T>` instead of raw entity references or null?**
+  > *"Returning `Optional<T>` eliminates runtime `NullPointerException`s by turning the possibility of absence into a type-level contract. It forces caller services to explicitly handle missing records using functional combinators like `.orElseThrow()`, preventing silent null propagation through the domain layer."*
+* **Q3: Is it acceptable to use `Optional` as a method parameter or entity field?**
+  > *"No. `Optional` is not `Serializable`, making it unsuitable for JPA entity fields or session storage. It also introduces extra heap allocation overhead. In production Java, `Optional` is strictly designed as a method return type to represent absent query results."*
+
+---
+
+### 🔍 Line-by-Line Code Breakdown of `WalletRepository.java`
+```java
+package com.example.nexpay.wallet.repository;
+
+import com.example.nexpay.wallet.model.Wallet;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository                                             // 1. Stereotype marking interface as a Spring Data DAO bean
+public interface WalletRepository extends JpaRepository<Wallet, Long> {
+
+    // 2. Traverses Wallet.user.id foreign key: SELECT * FROM wallets WHERE user_id = ?
+    // Returns Optional<Wallet> monad to force safe, functional absence handling
+    Optional<Wallet> findByUserId(Long userId);
+}
+```
