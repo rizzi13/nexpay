@@ -74,6 +74,9 @@
     - [5. Component 4: WalletService.java, DTOs & WalletController.java](#5-component-4-walletservicejava-dtos--walletcontrollerjava--financial-endpoints--idor-defense)
     - [6. Architectural Deep Dive: Why Layered Architecture & Package-by-Feature?](#6-architectural-deep-dive-why-layered-architecture--package-by-feature)
     - [7. PostgreSQL Engineering Deep Dive: What PostgreSQL Actually Does Under Hibernate's Hood](#7-postgresql-engineering-deep-dive-what-postgresql-actually-does-under-hibernates-hood)
+  - [Chapter 10: Day 3 — P2P Money Transfers, Pessimistic Locking & Concurrency Control](#chapter-10-day-3--p2p-money-transfers-pessimistic-locking--concurrency-control)
+    - [1. Holistic Domain Masterclass: Concurrency Control, Locking Paradigms & Deadlock Mathematics](#1-holistic-domain-masterclass-concurrency-control-locking-paradigms--deadlock-mathematics)
+    - [2. Component 1: WalletRepository.java — Pessimistic Row-Level Locking](#2-component-1-walletrepositoryjava--pessimistic-row-level-locking)
 
 ---
 
@@ -2687,8 +2690,10 @@ In enterprise fintech handling billions of dollars, this produces catastrophic f
   * One giant `models/` folder with 50 models.
   * *The Problem:* To understand how "Wallets" work, an engineer must jump across 5 completely separate folders across the project tree.
 * **Package-by-Feature (Senior / Big Tech Style — Used in NexPay):**
-  * `com.example.nexpay.user` $ightarrow$ Everything related to identity and login.
-  * `com.example.nexpay.wallet` $ightarrow$ Everything related to money, balances, and top-ups.
+  * `com.example.nexpay.user` $
+ightarrow$ Everything related to identity and login.
+  * `com.example.nexpay.wallet` $
+ightarrow$ Everything related to money, balances, and top-ups.
   * *The Advantages:*
     1. **High Cohesion & Low Coupling:** The Wallet team works exclusively inside `wallet/` without risking merge conflicts or regressions in `user/`.
     2. **Zero-Friction Microservices Extraction:** When NexPay scales to 10 million users, the `wallet` package can be extracted into an independent Spring Boot microservice repo in minutes with zero refactoring.
@@ -2747,3 +2752,157 @@ psql -U postgres -d nexpaydb -c "SELECT * FROM wallets;"
 On Day 3, our PostgreSQL knowledge transitions into high-concurrency database internals:
 * **`SELECT ... FOR UPDATE`:** Utilizing PostgreSQL's Lock Manager (`pg_locks`) to place exclusive row-level locks on disk tuples, preventing concurrent double-spending race conditions.
 * **MVCC (Multi-Version Concurrency Control):** How PostgreSQL isolates concurrent read/write operations without table-level blocking using hidden system header columns (`xmin` and `xmax`).
+
+
+---
+
+# Chapter 10: Day 3 — P2P Money Transfers, Pessimistic Locking & Concurrency Control
+
+## 1. Holistic Domain Masterclass: Concurrency Control, Locking Paradigms & Deadlock Mathematics
+
+In high-concurrency payment engines, handling financial balance mutations requires mathematically proving that race conditions, dirty writes, and deadlocks cannot corrupt system state.
+
+In ordinary web apps, concurrent reads and writes are harmless. In a payment engine, concurrent requests can destroy the bank.
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              THE DATABASE CONCURRENCY SPECTRUM                                         │
+├──────────────────────────────┬───────────────────────────────┬─────────────────────────────────────────┤
+│ Paradigm                     │ Mechanics                     │ Industry Application                    │
+├──────────────────────────────┼───────────────────────────────┼─────────────────────────────────────────┤
+│ 1. No Locking                │ First/Last write wins         │ ❌ DISASTER IN FINTECH                   │
+│    (Uncontrolled Concurrency)│ Dirty writes & lost updates   │ (Allowed only in visitor count counters)│
+├──────────────────────────────┼───────────────────────────────┼─────────────────────────────────────────┤
+│ 2. Optimistic Locking        │ Row version number (@Version) │ 🏆 High-Read, Low-Write Systems         │
+│    (Optimistic Concurrency)  │ Fails on commit if changed    │ (E-Commerce catalog, user profile edit) │
+├──────────────────────────────┼───────────────────────────────┼─────────────────────────────────────────┤
+│ 3. Pessimistic Locking       │ Physical row lock in RAM      │ 🏆 High-Value Financial Transactions    │
+│    (SELECT ... FOR UPDATE)   │ Forces threads to queue       │ (NexPay, Bank Debits, Inventory reserve)│
+├──────────────────────────────┼───────────────────────────────┼─────────────────────────────────────────┤
+│ 4. Distributed Locking       │ Centralized lock coordinator  │ 🏆 Cross-Service Coordination           │
+│    (Redis Redlock / Zookeeper│ Token lease with TTL          │ (Multi-datacenter global transfers)     │
+└──────────────────────────────┴───────────────────────────────┴─────────────────────────────────────────┘
+```
+
+---
+
+### 1. The Race Condition: The "Double-Spending" Exploit
+
+Imagine User A has a balance of **₹1,000.00**. 
+They open two browser tabs (or use a script) and click **"Send ₹1,000"** to User B and User C at the **exact same millisecond**:
+
+```
+THREAD 1 (Sends ₹1,000 to User B)           THREAD 2 (Sends ₹1,000 to User C)
+─────────────────────────────────           ─────────────────────────────────
+1. Reads Balance: ₹1,000                    
+                                            2. Reads Balance: ₹1,000 (Before Thread 1 writes!)
+3. Checks: ₹1,000 >= ₹1,000? YES            4. Checks: ₹1,000 >= ₹1,000? YES
+5. New Balance = 1,000 - 1,000 = ₹0         6. New Balance = 1,000 - 1,000 = ₹0
+7. Writes Balance: ₹0                       8. Writes Balance: ₹0
+```
+
+**The Disaster:** 
+* User A only had ₹1,000.
+* But User B received ₹1,000, AND User C received ₹1,000!
+* **User A just created ₹1,000 out of thin air.** The platform lost ₹1,000. This is the **Lost Update / Double-Spending Anomaly**.
+
+---
+
+### 2. Optimistic Locking vs. Pessimistic Locking: Why Financial Systems Choose Pessimistic
+
+* **Why Optimistic Locking (`@Version`) is Wrong for P2P Transfers:**
+  Optimistic locking does not lock the database row. Instead, it checks a `version` column on commit (`UPDATE ... WHERE version = 1`). If another thread committed first, it throws `OptimisticLockException` and **aborts the transaction**.
+  *In high-traffic financial systems, aborting transactions causes customer transfers to fail randomly with "Try again" errors.*
+* **Why Pessimistic Locking (`SELECT FOR UPDATE`) Wins:**
+  Pessimistic locking says: *"Assume collisions WILL happen."*
+  When Thread 1 reads User A's wallet, PostgreSQL locks that physical row in memory:
+  $$\texttt{SELECT * FROM wallets WHERE user_id = ? FOR UPDATE;}$$
+  Thread 2 is **physically paused at the database level** until Thread 1 finishes its commit. When Thread 2 finally unblocks and reads the balance, it sees ₹0 and rejects the transfer cleanly!
+
+---
+
+### 3. The Deadlock Trap & The Mathematical Prevention (Coffman Conditions)
+
+Pessimistic locking introduces a fatal trap: **The Circular Deadlock**.
+
+Imagine two users transfer money to each other at the exact same millisecond:
+* **Transfer 1:** Alice sends ₹100 to Bob.
+* **Transfer 2:** Bob sends ₹100 to Alice.
+
+```
+THREAD 1 (Alice -> Bob)                      THREAD 2 (Bob -> Alice)
+───────────────────────                      ───────────────────────
+1. Locks Alice's Wallet (Waiting for Bob)    
+                                             2. Locks Bob's Wallet (Waiting for Alice)
+3. Tries to lock Bob's Wallet... BLOCKED!    4. Tries to lock Alice's Wallet... BLOCKED!
+```
+
+Both threads are holding one lock and waiting for the other. **Neither can ever finish!**
+After 1 second (`deadlock_timeout`), PostgreSQL detects the cycle and forcibly kills one transaction with:
+`ERROR: deadlock detected (detail: Process 1234 waits for ExclusiveLock...)`
+
+#### 🏆 The Staff-Level Solution: Deterministic Lock Ordering
+According to E.G. Coffman's mathematical theorem on deadlocks (1971), a deadlock requires **Circular Wait**. If you eliminate circular wait, deadlocks are **mathematically impossible**.
+
+**The Rule:** Always acquire locks in **ascending order of Primary Key (`wallet_id`)**:
+
+$$\text{First Lock} = \min(\text{walletA.id}, \text{walletB.id}), \quad \text{Second Lock} = \max(\text{walletA.id}, \text{walletB.id})$$
+
+* Regardless of whether Alice sends to Bob or Bob sends to Alice, **both threads will attempt to lock Wallet 1 FIRST, and Wallet 2 SECOND**.
+* The circular wait condition is destroyed. Deadlocks can never occur!
+
+---
+
+# 🏛️ Step 1: Updating `WalletRepository.java` with Pessimistic Locking
+
+### 1. 🧠 The 3-Pillar Masterclass for `findByUserIdWithLock`
+
+#### 1. 🧠 Core Concept, Mathematics & Low-Level Mechanics
+* **`@Lock(LockModeType.PESSIMISTIC_WRITE)`:**
+  * Translates JPQL into PostgreSQL's physical row-level exclusive lock:
+    $$\texttt{SELECT w FROM Wallet w WHERE w.user.id = :userId FOR UPDATE}$$
+  * PostgreSQL inserts an entry into its internal **Lock Manager (`pg_locks`)** table:
+    - `locktype = tuple`
+    - `mode = ExclusiveLock`
+    - `granted = true`
+  * Any subsequent query attempting `SELECT FOR UPDATE` on that same row ID is forced into a sleep queue until the owning transaction issues `COMMIT` or `ROLLBACK`.
+
+#### 2. 🎯 Production Failure Mode It Solves
+* **Zero Race Conditions:** Ensures that money deductions and balance reads are 100% serialized at the storage engine level. No two threads can ever read the same balance concurrently.
+
+#### 3. 🎤 Real Senior/Staff Interview Questions & Punchy Verbal Answers
+* **Q: What is the difference between `PESSIMISTIC_READ` and `PESSIMISTIC_WRITE` in JPA?**
+  > *"`PESSIMISTIC_READ` generates `SELECT ... FOR SHARE` in PostgreSQL, allowing concurrent readers but blocking writers. `PESSIMISTIC_WRITE` generates `SELECT ... FOR UPDATE`, acquiring an exclusive lock that blocks both other writers and other pessimistic readers. In financial transactions involving balance mutations, `PESSIMISTIC_WRITE` is mandatory to prevent lost updates."*
+
+---
+
+### 🔍 Line-by-Line Code Breakdown of `WalletRepository.java` (Updated)
+
+```java
+package com.example.nexpay.wallet.repository;
+
+import com.example.nexpay.wallet.model.Wallet;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface WalletRepository extends JpaRepository<Wallet, Long> {
+
+    // 1. Standard non-locking read for balance inquiries
+    Optional<Wallet> findByUserId(Long userId);
+
+    // 2. Pessimistic Write Lock: Generates SELECT * FROM wallets WHERE user_id = ? FOR UPDATE
+    // Acquires an exclusive row lock in PostgreSQL to prevent concurrent double-spending
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT w FROM Wallet w WHERE w.user.id = :userId")
+    Optional<Wallet> findByUserIdWithLock(@Param("userId") Long userId);
+}
+```
+
+---
